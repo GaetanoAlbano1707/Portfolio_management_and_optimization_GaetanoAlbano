@@ -30,4 +30,4 @@ def merge_forecast_csvs(folder_path, output_file="merged_forecast_data.csv"):
 
 
 if __name__ == '__main__':
-    merge_forecast_csvs('./Forecast_Files/')
+    merge_forecast_csvs('./PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano/Risultati_GARCH_LSTM_Forecasting/')

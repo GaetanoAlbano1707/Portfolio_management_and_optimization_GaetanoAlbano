@@ -15,7 +15,7 @@ def main():
     forecast_data = pd.read_csv("forecast_data.csv", parse_dates=['date'])
 
     config = Config(seed_num=2022)
-    env = ExtendedStockPortfolioEnv(config=config, data=data, forecast_data=forecast_data, mode='train')
+    env = TickersPortfolioEnv(config=config, data=data, forecast_data=forecast_data, mode='train')
 
     # Crea il modello RL: usiamo TD3 con policy MLP (modifica in base alle tue esigenze)
     model = TD3("MlpPolicy", env, verbose=1, learning_rate=config.learning_rate, seed=config.seed_num)
