@@ -1,8 +1,3 @@
-from google.colab import drive
-drive.mount('/content/drive')
-!pip install yfinance
-!pip install arch
-!pip install keras-tuner
 import os
 import pandas as pd
 import numpy as np
@@ -11,14 +6,14 @@ import matplotlib.pyplot as plt
 
 # GARCH
 from arch import arch_model
-
+import keras
 # LSTM & Deep Learning con TensorFlow Keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.losses import Huber  # Huber Loss per robustezza agli outlier
+from keras.models import Sequential
+from keras.layers import LSTM, Dense, Dropout
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, Callback
+from keras.optimizers import Adam
+from keras.regularizers import l2
+from keras.losses import Huber  # Huber Loss per robustezza agli outlier
 
 # Scaling e Metriche
 from sklearn.preprocessing import StandardScaler
@@ -42,8 +37,7 @@ class CheckNaNCallback(Callback):
 ##########################################
 # 1. Caricamento dei dati e preprocessing
 ##########################################
-def load_data(tickers, start_date='01/01/2007', end_date='23/12/2024',
-              save_dir='/content/drive/MyDrive/Prova_Garch'):
+def load_data(tickers, start_date='01/01/2007', end_date='23/12/2024', save_dir='./PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano/Volatility_Forecasting/'):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     start_date_dt = pd.to_datetime(start_date, format='%d/%m/%Y')
@@ -398,8 +392,7 @@ if __name__ == "__main__":
     tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI', 'NVDA', 'LMT', 'WMT', 'XOM', 'NKE', 'AMZN', 'NFLX', 'AAPL']
     data_dict = load_data(tickers)
     for ticker in tickers:
-        print(f"
-=== Processing {ticker} ===")
+        print(f"Processing {ticker} ===")
         data = data_dict[ticker].copy()
         data = add_features(data)
         # Applichiamo il modello GARCH per ottenere le previsioni in blocchi (ricorsivo 1-step)
@@ -497,7 +490,7 @@ if __name__ == "__main__":
 
         history_csv_path = os.path.join('/content/drive/MyDrive/Prova_Garch/', f"training_history_{ticker}.csv")
         pd.DataFrame(history.history).to_csv(history_csv_path, index=False)
-        model_save_path = os.path.join('/content/drive/MyDrive/Prova_Garch/', f"modello_lstm_{ticker}.h5")
+        model_save_path = os.path.join('./PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano/Volatility_Forecasting/', f"modello_lstm_{ticker}.h5")
         final_model.save(model_save_path)
         print(f"[{ticker}] Modello LSTM salvato in: {model_save_path}")
 
@@ -508,6 +501,6 @@ if __name__ == "__main__":
         plt.xlabel("Campioni")
         plt.ylabel("Volatilità")
         plt.legend()
-        plot_path = os.path.join('/content/drive/MyDrive/Prova_Garch/', f"Reale_vs_Pred_{ticker}.png")
+        plot_path = os.path.join('./PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano/Volatility_Forecasting/', f"Reale_vs_Pred_{ticker}.png")
         plt.savefig(plot_path)
         plt.show() 
