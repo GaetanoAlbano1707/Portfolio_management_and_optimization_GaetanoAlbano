@@ -1,0 +1,43 @@
+ticker;variable;kurtosis;skewness;kurtosis_type;skewness_type
+XLK;return;9,2500;-0,0009;Leptocurtica;Negativamente asimmetrica
+XLK;log_return;9,1702;-0,2418;Leptocurtica;Negativamente asimmetrica
+XLK;Adj Close;0,3617;1,2116;Platicurtica;Positivamente asimmetrica
+XLV;return;11,0343;-0,1334;Leptocurtica;Negativamente asimmetrica
+XLV;log_return;10,9951;-0,3434;Leptocurtica;Negativamente asimmetrica
+XLV;Adj Close;-1,0035;0,5267;Platicurtica;Positivamente asimmetrica
+XLF;return;15,1157;0,3108;Leptocurtica;Positivamente asimmetrica
+XLF;log_return;15,0868;-0,1857;Leptocurtica;Negativamente asimmetrica
+XLF;Adj Close;-0,3502;0,6779;Platicurtica;Positivamente asimmetrica
+XLE;return;12,0895;-0,2763;Leptocurtica;Negativamente asimmetrica
+XLE;log_return;13,4384;-0,6973;Leptocurtica;Negativamente asimmetrica
+XLE;Adj Close;0,5348;0,9829;Platicurtica;Positivamente asimmetrica
+XLY;return;7,0874;-0,3714;Leptocurtica;Negativamente asimmetrica
+XLY;log_return;7,6906;-0,5684;Leptocurtica;Negativamente asimmetrica
+XLY;Adj Close;-0,8642;0,6088;Platicurtica;Positivamente asimmetrica
+XLI;return;8,8033;-0,1821;Leptocurtica;Negativamente asimmetrica
+XLI;log_return;8,8651;-0,4022;Leptocurtica;Negativamente asimmetrica
+XLI;Adj Close;-0,4416;0,7111;Platicurtica;Positivamente asimmetrica
+NVDA;return;7,9741;0,1678;Leptocurtica;Positivamente asimmetrica
+NVDA;log_return;9,2238;-0,3183;Leptocurtica;Negativamente asimmetrica
+NVDA;Adj Close;12,0635;3,4457;Leptocurtica;Positivamente asimmetrica
+LMT;return;10,0490;-0,2910;Leptocurtica;Negativamente asimmetrica
+LMT;log_return;10,7354;-0,5594;Leptocurtica;Negativamente asimmetrica
+LMT;Adj Close;-0,9260;0,5354;Platicurtica;Positivamente asimmetrica
+WMT;return;13,2036;0,2209;Leptocurtica;Positivamente asimmetrica
+WMT;log_return;13,1242;-0,0707;Leptocurtica;Negativamente asimmetrica
+WMT;Adj Close;1,5122;1,2883;Platicurtica;Positivamente asimmetrica
+XOM;return;10,3394;0,2520;Leptocurtica;Positivamente asimmetrica
+XOM;log_return;10,0012;-0,0569;Leptocurtica;Negativamente asimmetrica
+XOM;Adj Close;1,4074;1,4414;Platicurtica;Positivamente asimmetrica
+NKE;return;11,3483;0,1554;Leptocurtica;Positivamente asimmetrica
+NKE;log_return;12,4250;-0,2337;Leptocurtica;Negativamente asimmetrica
+NKE;Adj Close;-0,5147;0,7092;Platicurtica;Positivamente asimmetrica
+AMZN;return;14,0992;1,1562;Leptocurtica;Positivamente asimmetrica
+AMZN;log_return;10,8388;0,6866;Leptocurtica;Positivamente asimmetrica
+AMZN;Adj Close;-0,7270;0,8230;Platicurtica;Positivamente asimmetrica
+NFLX;return;20,2583;0,2840;Leptocurtica;Positivamente asimmetrica
+NFLX;log_return;25,0990;-0,8657;Leptocurtica;Negativamente asimmetrica
+NFLX;Adj Close;-0,0596;0,9743;Platicurtica;Positivamente asimmetrica
+AAPL;return;6,0206;-0,1218;Leptocurtica;Negativamente asimmetrica
+AAPL;log_return;6,6821;-0,3674;Leptocurtica;Negativamente asimmetrica
+AAPL;Adj Close;0,1385;1,2270;Platicurtica;Positivamente asimmetrica
