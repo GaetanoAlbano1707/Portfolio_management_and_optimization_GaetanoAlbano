@@ -1,0 +1,7 @@
+# Ignora solo i file dell'ambiente virtuale e cache
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.idea/
