@@ -2,7 +2,7 @@ import pandas as pd
 from forecast_data import directory_forecasting_results_csvs
 import os
 
-def merge_forecast_csvs(tickers, output_file="./merged_forecast_results.csv"):
+def merge_forecast_csvs(tickers, output_file="./Tickers_file/merged_forecast_results.csv"):
 
     lista_csvs= directory_forecasting_results_csvs(tickers)
 

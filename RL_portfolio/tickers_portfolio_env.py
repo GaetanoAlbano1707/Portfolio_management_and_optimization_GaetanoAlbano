@@ -4,6 +4,8 @@ from gym import spaces
 from transaction_costs import optimize_with_transaction_costs  # importiamo la nostra funzione di ottimizzazione
 import scipy.special
 
+
+
 class TickersPortfolioEnv(gym.Env):
     def __init__(self, config, data, forecast_data, mode='train'):
         """

@@ -2,7 +2,7 @@ import pandas as pd
 from load_file import download_tickers
 import os
 
-def merge_ticker_csvs(tickers, output_file="./merged_tickers_data.csv"):
+def merge_ticker_csvs(tickers, output_file="./Tickers_file/merged_tickers_data.csv"):
     csvs_dict = download_tickers(tickers)
     df_list = []
 

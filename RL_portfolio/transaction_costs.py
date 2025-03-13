@@ -6,24 +6,25 @@ import os
 # -----------------------
 # PARAMETRI DI CONFIGURAZIONE
 # -----------------------
+from config import Config
 
-gamma = 0.99  # Parametro di avversione al rischio (da calibrare)
+config = Config()
+gamma = config.gamma
+
 assets = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
 n_assets = len(assets)
 
-# Date per la stima dei ritorni attesi e per la volatilità predetta
 start_date = "2019-12-20"
 end_date = "2024-12-20"
 
-# Costi di transazione (esempio: 0.002 per vendere, 0.001 per comprare)
-c_minus = 0.002 * np.ones(n_assets)  # costo di vendita per ogni asset
-c_plus = 0.001 * np.ones(n_assets)  # costo di acquisto per ogni asset
+c_minus = 0.002 * np.ones(n_assets)
+c_plus = 0.001 * np.ones(n_assets)
 
 
 # -----------------------
 # 1. CARICAMENTO DEI DATI DI RITORNO
-# (Il codice è già implementato, lo riutilizziamo)
-def merge_log_returns(directory: str, tickers: list, output_file: str):
+# -----------------------
+def merge_log_returns(tickers, directory="./Tickers_file/", output_file="merged_log_returns.csv"):
     merged_df = None
     for ticker in tickers:
         file_path = os.path.join(directory, f"{ticker}_data.csv")
@@ -35,19 +36,23 @@ def merge_log_returns(directory: str, tickers: list, output_file: str):
             else:
                 merged_df = pd.merge(merged_df, df, on='Date', how='outer')
         else:
-            print(f"File not found: {file_path}")
+            print(f"❌ File not found: {file_path}")
+
     if merged_df is not None:
         merged_df.to_csv(output_file, index=False)
-        print(f"Merged file saved as {output_file}")
+        print(f"✅ Merged file saved as {output_file}")
     else:
-        print("No data to merge.")
+        print("❌ No data to merge.")
+
     return merged_df
 
 
-directory_returns = "./Data_Analysis/Tickers_file/"
-tickers = assets  # già definito
+directory_returns = "./Tickers_file/"
 output_file_returns = "merged_log_returns.csv"
-log_returns_df = merge_log_returns(directory_returns, tickers, output_file_returns)
+log_returns_df = merge_log_returns(assets, directory_returns, output_file_returns)
+
+if log_returns_df is None:
+    raise FileNotFoundError("❌ Errore: Nessun dato di ritorno logaritmico trovato. Controlla i file dei tickers.")
 
 log_returns_df['Date'] = pd.to_datetime(log_returns_df['Date'])
 log_returns_df.sort_values("Date", inplace=True)
@@ -58,9 +63,16 @@ log_returns_df.sort_values("Date", inplace=True)
 # -----------------------
 def group_blocks(df, block_size=10):
     df = df.copy()
+
+    # Rimuove righe in eccesso per evitare problemi di dimensione
+    rows_to_keep = (len(df) // block_size) * block_size
+    df = df.iloc[:rows_to_keep]
+
     df['block'] = np.repeat(np.arange(len(df) // block_size), block_size)
+
     grouped = df.groupby('block').agg({col: 'sum' for col in df.columns if col.endswith('_log_return')})
     grouped['Date'] = df.groupby('block')['Date'].first().values
+
     return grouped
 
 
@@ -72,13 +84,13 @@ blocks_df = group_blocks(log_returns_df, block_size=10)
 mask_mu = (blocks_df["Date"] >= pd.to_datetime(start_date)) & (blocks_df["Date"] <= pd.to_datetime(end_date))
 blocks_recent = blocks_df[mask_mu]
 mu = blocks_recent[[f"{ticker}_log_return" for ticker in assets]].mean().values
-print("Vettore dei ritorni attesi (μ):", mu)
+print("✅ Vettore dei ritorni attesi (μ) calcolato:", mu)
 
 
 # -----------------------
-# 4. CARICAMENTO DEI DATI DI VOLATILITÀ PREDETTA
+# 4. CARICAMENTO DELLA VOLATILITÀ PREDETTA
 # -----------------------
-def merge_results_Garch_LSTM(directory: str, tickers: list, output_file: str):
+def merge_results_Garch_LSTM(tickers, directory= "./Risultati_GARCH_LSTM_Forecasting/",  output_file="merged_Results_Garch_LSTM.csv"):
     merged_df = None
     for ticker in tickers:
         file_path = os.path.join(directory, f"risultati_forecasting_{ticker}.csv")
@@ -90,123 +102,98 @@ def merge_results_Garch_LSTM(directory: str, tickers: list, output_file: str):
             else:
                 merged_df = pd.merge(merged_df, df, on='Date', how='outer')
         else:
-            print(f"File not found: {file_path}")
+            print(f"❌ File not found: {file_path}")
+
     if merged_df is not None:
         merged_df.to_csv(output_file, index=False)
-        print(f"Merged file saved as {output_file}")
+        print(f"✅ Merged file saved as {output_file}")
     else:
-        print("No data to merge.")
+        print("❌ No data to merge.")
+
     return merged_df
 
 
 directory_vol = "./Risultati_GARCH_LSTM_Forecasting/"
 output_file_vol = "merged_Results_Garch_LSTM.csv"
-merge_df_volatility = merge_results_Garch_LSTM(directory_vol, tickers, output_file_vol)
+merge_df_volatility = merge_results_Garch_LSTM(assets, directory_vol, output_file_vol)
+
+if merge_df_volatility is None or merge_df_volatility.empty:
+    raise FileNotFoundError("❌ Errore: Nessun dato di volatilità trovato. Controlla i file GARCH-LSTM.")
+
 merge_df_volatility['Date'] = pd.to_datetime(merge_df_volatility['Date'])
 merge_df_volatility.sort_values("Date", inplace=True)
 
-vol_columns = [f"{ticker}_pred_volatility" for ticker in assets]
-blocks_df = blocks_df.merge(merge_df_volatility[["Date"] + vol_columns], on="Date", how="left")
-
-# -----------------------
-# 5. CALCOLO DELLA MATRICE DI CORRELAZIONE (ogni 3 mesi)
-# -----------------------
-log_returns_df['quarter'] = log_returns_df['Date'].dt.to_period("Q")
-quarter_corr = {}
-for quarter, group in log_returns_df.groupby("quarter"):
-    corr_matrix = group[[f"{ticker}_log_return" for ticker in assets]].corr().values
-    quarter_corr[str(quarter)] = corr_matrix
+blocks_df = blocks_df.merge(merge_df_volatility, on="Date", how="left")
 
 
 # -----------------------
-# 6. CALCOLO DELLA MATRICE DI COVARIANZA (per ciascun blocco di 10 giorni)
+# 5. CALCOLO DELLA MATRICE DI COVARIANZA
 # -----------------------
 def get_covariance_matrix(row, alpha=0.1):
-    vol_vector = np.array([row[f"{ticker}_pred_volatility"] for ticker in assets])
+    vol_vector = np.array([row.get(f"{ticker}_pred_volatility", np.nan) for ticker in assets])
+
+    if np.isnan(vol_vector).any():
+        print(f"❌ ATTENZIONE: Dati di volatilità mancanti per la data {row['Date']}.")
+        return None
+
     D = np.diag(vol_vector)
-    quarter = pd.to_datetime(row["Date"]).to_period("Q")
-    corr = quarter_corr.get(str(quarter))
+    Sigma = D @ np.eye(n_assets) @ D
 
-    if corr is None:
-        corr = np.eye(n_assets)
-    else:
-        corr = (1 - alpha) * corr + alpha * np.eye(n_assets)  # Smorzamento della correlazione
-
-    Sigma = D @ corr @ D
-    # Se la matrice Sigma contiene NaN o numeri negativi sulla diagonale → fallback a matrice diagonale
-    if np.isnan(Sigma).any() or np.any(np.diag(Sigma) <= 0):
-        Sigma = np.eye(len(vol_vector)) * (np.mean(vol_vector) if np.mean(vol_vector) > 0 else 1.0)
-    if np.linalg.det(Sigma) <= 1e-6 or np.isnan(Sigma).any():
-        Sigma += np.eye(len(Sigma)) * 1e-2  # Rende Σ ben condizionata
     return Sigma
-
 
 
 blocks_df["Sigma"] = blocks_df.apply(get_covariance_matrix, axis=1)
 
 
 # -----------------------
-# 7. OTTIMIZZAZIONE CON COSTI DI TRANSAZIONE
+# 6. OTTIMIZZAZIONE CON COSTI DI TRANSAZIONE
 # -----------------------
-# Definiamo una funzione per risolvere l'ottimizzazione con costi di transazione.
-def optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, delta_minus, delta_plus, gamma=1.0):
+def optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, gamma=1.0):
     n = len(mu)
 
-    # Variabili di ottimizzazione
     w = cp.Variable(n)
-    delta_minus_var = cp.Variable(n)  # Quantità da vendere
-    delta_plus_var = cp.Variable(n)  # Quantità da comprare
+    delta_minus_var = cp.Variable(n)
+    delta_plus_var = cp.Variable(n)
 
-    # Calcolo dei costi quadratici
-    quadratic_cost = cp.sum(cp.multiply(delta_minus, cp.square(delta_minus_var))) + \
-                     cp.sum(cp.multiply(delta_plus, cp.square(delta_plus_var)))
-
-    # Funzione di costo totale (lineare + quadratica)
     total_transaction_cost = cp.sum(cp.multiply(c_minus, delta_minus_var) +
-                                    cp.multiply(c_plus, delta_plus_var)) + quadratic_cost
+                                    cp.multiply(c_plus, delta_plus_var))
 
-    # Vincoli di ottimizzazione
     constraints = [
-        cp.sum(w) + total_transaction_cost <= 1,  # Budget constraint corretto
-        cp.sum(delta_minus_var) <= cp.sum(delta_plus_var),  # Evita squilibri
-        total_transaction_cost <= 0.01  # Limita i costi di transazione totali
+        cp.sum(w) == 1,
+        total_transaction_cost <= 0.01
     ]
 
-    # Funzione obiettivo (Mean-Variance con costi di transazione)
     objective = cp.Minimize(0.5 * cp.quad_form(w, Sigma) - gamma * (w @ mu - total_transaction_cost))
 
-    # Risoluzione del problema
     prob = cp.Problem(objective, constraints)
     prob.solve()
 
     return w.value, delta_minus_var.value, delta_plus_var.value
 
 
-# Inizialmente, il portafoglio corrente (w_tilde) è uguale per tutti gli asset
 w_tilde = np.ones(n_assets) / n_assets
 
 results_with_costs = []
 
-# Per ogni blocco di 10 giorni, esegui l'ottimizzazione con costi di transazione
 for idx, row in blocks_df.iterrows():
-    Sigma = row["Sigma"]
-    # Ottimizza il portafoglio considerando i costi di transazione
-    w_opt, delta_minus_opt, delta_plus_opt = optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, gamma)
+    if "Sigma" not in row or row["Sigma"] is None:
+        print(f"⚠️ Saltata ottimizzazione per la data {row['Date']} perché Sigma è mancante.")
+        continue
 
-    exp_ret = mu @ w_opt
-    var_port = w_opt.T @ Sigma @ w_opt
+    Sigma = row["Sigma"]
+    w_opt, delta_minus_opt, delta_plus_opt = optimize_with_transaction_costs(
+        mu, Sigma, w_tilde, c_minus, c_plus, gamma)
 
     results_with_costs.append({
         "Date": row["Date"],
         **{f"{assets[i]}_weight": w_opt[i] for i in range(n_assets)},
-        "Expected_Return": exp_ret,
-        "Variance": var_port,
+        "Expected_Return": mu @ w_opt,
+        "Variance": w_opt.T @ Sigma @ w_opt,
         "Transaction_Cost": np.sum(c_minus * delta_minus_opt + c_plus * delta_plus_opt)
     })
 
-    # Aggiorna il portafoglio corrente per il blocco successivo
     w_tilde = w_opt
 
 opt_results_costs_df = pd.DataFrame(results_with_costs)
 opt_results_costs_df.to_csv("optimization_results_with_costs.csv", index=False)
-print("Ottimizzazione con costi completata e risultati salvati in 'optimization_results_with_costs.csv'.")
+print("✅ Ottimizzazione con costi completata e risultati salvati in 'optimization_results_with_costs.csv'.")

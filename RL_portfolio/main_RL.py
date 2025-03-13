@@ -7,14 +7,15 @@ import os
 import torch
 
 
+
 def main():
 
     # Carica i dati storici dei prezzi
-    data = pd.read_csv(r"C:\Users\gaeta\Desktop\PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano\RL_portfolio\merged_tickers_data.csv", parse_dates=['Date'])
+    data = pd.read_csv("./Tickers_file/merged_tickers_data.csv", parse_dates=['Date'])
     # Per semplicità, assumiamo che il CSV sia già nel formato: ogni riga una data e ogni colonna (oltre 'Date') è il prezzo di chiusura di un asset.
 
     # Carica i forecast ottenuti dal modello GARCH-LSTM (CSV con colonne: 'Date', 'vol_forecast', 'pred_return')
-    forecast_data = pd.read_csv(r"C:\Users\gaeta\Desktop\PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano\RL_portfolio\merged_forecast_results.csv", parse_dates=['Date'])
+    forecast_data = pd.read_csv("./Tickers_file/merged_forecast_results.csv", parse_dates=['Date'])
 
     config = Config(seed_num=2022)
     env = TickersPortfolioEnv(config=config, data=data, forecast_data=forecast_data, mode='train')
