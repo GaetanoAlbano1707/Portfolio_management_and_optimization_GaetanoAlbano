@@ -1,9 +1,9 @@
 import pandas as pd
 from load_file import download_tickers
-
+import os
 
 def merge_ticker_csvs(tickers, output_file="./merged_tickers_data.csv"):
-    csvs_dict = download_tickers(tickers)  # Scarica i dati e ottieni un dizionario di DataFrame
+    csvs_dict = download_tickers(tickers)
     df_list = []
 
     for ticker, df in csvs_dict.items():
@@ -13,9 +13,9 @@ def merge_ticker_csvs(tickers, output_file="./merged_tickers_data.csv"):
 
         # Seleziona le colonne di interesse
         df = df[['Date', 'Adj Close', 'High', 'Low', 'Open', 'Volume', 'Close', 'return', 'log_return']]
-
         # Rinomina le colonne per includere il ticker
         df.rename(columns={
+            'Date': "Date",
             'Adj Close': f"{ticker}_AdjClose",
             'High': f"{ticker}_High",
             'Low': f"{ticker}_Low",
@@ -32,8 +32,10 @@ def merge_ticker_csvs(tickers, output_file="./merged_tickers_data.csv"):
         print("⚠️ Nessun file valido trovato, merge non eseguito.")
         return None
 
+
     # Merge su 'Date'
     merged_df = df_list[0]
+
     for df in df_list[1:]:
         merged_df = pd.merge(merged_df, df, on='Date', how='outer')
 
@@ -43,11 +45,9 @@ def merge_ticker_csvs(tickers, output_file="./merged_tickers_data.csv"):
 
     # Salva il dataset unificato
     merged_df.to_csv(output_file, index=False)
-    print(f"✅ Dataset unificato salvato in {output_file}")
+    print(f"✅ File merged_tickers_data.csv salvato in: {os.path.abspath(output_file)}")
 
     return merged_df
 
-
-# Esempio di utilizzo
-tickers = ['XLI', 'XLK', 'XLF', 'XLE', 'XLY', 'XLV']
-merged_data = merge_ticker_csvs(tickers)
+tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
+df = merge_ticker_csvs(tickers)

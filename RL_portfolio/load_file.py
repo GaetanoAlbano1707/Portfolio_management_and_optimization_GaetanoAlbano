@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 import os
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 def download_tickers(tickers, start_date='01/01/2007', end_date='23/12/2024', save_dir='./Tickers_file/'):
     if not os.path.exists(save_dir):
@@ -19,9 +19,11 @@ def download_tickers(tickers, start_date='01/01/2007', end_date='23/12/2024', sa
             data = data.sort_index()
             data = data.ffill().bfill()
 
+            print(data.columns)
             # Appiattisci i nomi delle colonne (se MultiIndex)
             if isinstance(data.columns, pd.MultiIndex):
                 data.columns = [' '.join(col).strip() for col in data.columns]
+
 
             # Rimuove il nome del ticker dalle colonne
             data.columns = [col.replace(f" {ticker}", "") for col in data.columns]
@@ -37,6 +39,7 @@ def download_tickers(tickers, start_date='01/01/2007', end_date='23/12/2024', sa
 
             data_frames[ticker] = data
             filename = f"{save_dir}{ticker}_data.csv"
+            data.reset_index(inplace=True)
             data.to_csv(filename, float_format='%.3f', index=True)
             print(f"Dati salvati in: {filename}")
         except Exception as e:

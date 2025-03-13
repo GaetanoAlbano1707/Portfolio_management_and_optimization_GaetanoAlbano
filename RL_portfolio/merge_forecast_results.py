@@ -1,8 +1,6 @@
-import os
-import glob
 import pandas as pd
 from forecast_data import directory_forecasting_results_csvs
-
+import os
 
 def merge_forecast_csvs(tickers, output_file="./merged_forecast_results.csv"):
 
@@ -20,6 +18,9 @@ def merge_forecast_csvs(tickers, output_file="./merged_forecast_results.csv"):
 
     # Salva il risultato in un CSV
     merged_forecast.to_csv(output_file, index=False)
-    print(f"✅ Dataset unificato salvato in: {output_file}")
+    print(f"✅ File merged_forecast_results.csv salvato in: {os.path.abspath(output_file)}")
 
     return merged_forecast
+
+tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
+merge_forecast_csv= merge_forecast_csvs(tickers)
