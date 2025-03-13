@@ -6,6 +6,8 @@ from stable_baselines3 import TD3
 from stable_baselines3.common.callbacks import EvalCallback,  CheckpointCallback
 from load_file import download_tickers
 import os
+import torch
+
 
 def main():
     if not os.path.exists("dati_storici.csv") or not os.path.exists("forecast_data.csv"):
@@ -28,6 +30,9 @@ def main():
 
     checkpoint_callback = CheckpointCallback(save_freq=20000, save_path="./checkpoints/",
                                              name_prefix="TD3_transaction_cost")
+
+
+    torch.cuda.empty_cache()  # Libera memoria GPU prima di iniziare il training
     model.learn(total_timesteps=100000, callback=eval_callback)
 
     # Salva il modello addestrato
