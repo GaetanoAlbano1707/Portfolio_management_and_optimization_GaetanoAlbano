@@ -9,11 +9,11 @@ import torch
 
 def main():
 
-    # Carica i dati storici dei prezzi (assicurati che il CSV abbia colonna 'date' e colonne per ogni ticker)
+    # Carica i dati storici dei prezzi
     data = pd.read_csv(r"C:\Users\gaeta\Desktop\PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano\RL_portfolio\merged_tickers_data.csv", parse_dates=['Date'])
-    # Per semplicità, assumiamo che il CSV sia già nel formato: ogni riga una data e ogni colonna (oltre 'date') è il prezzo di chiusura di un asset.
+    # Per semplicità, assumiamo che il CSV sia già nel formato: ogni riga una data e ogni colonna (oltre 'Date') è il prezzo di chiusura di un asset.
 
-    # Carica i forecast ottenuti dal modello GARCH-LSTM (CSV con colonne: 'date', 'vol_forecast', 'pred_return')
+    # Carica i forecast ottenuti dal modello GARCH-LSTM (CSV con colonne: 'Date', 'vol_forecast', 'pred_return')
     forecast_data = pd.read_csv(r"C:\Users\gaeta\Desktop\PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano\RL_portfolio\merged_forecast_results.csv", parse_dates=['Date'])
 
     config = Config(seed_num=2022)

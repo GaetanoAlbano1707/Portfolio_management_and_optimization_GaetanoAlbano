@@ -1,15 +1,14 @@
 import numpy as np
 import gym
 from gym import spaces
-import pandas as pd
 from transaction_costs import optimize_with_transaction_costs  # importiamo la nostra funzione di ottimizzazione
 import scipy.special
 
 class TickersPortfolioEnv(gym.Env):
     def __init__(self, config, data, forecast_data, mode='train'):
         """
-        data: DataFrame contenente i dati storici. Deve avere almeno le colonne 'date' e i prezzi (es. 'Adj Close')
-        forecast_data: DataFrame con le previsioni. Deve avere una colonna 'date' e per ogni ticker le colonne
+        data: DataFrame contenente i dati storici. Deve avere almeno le colonne 'Date' e i prezzi (es. 'Adj Close')
+        forecast_data: DataFrame con le previsioni. Deve avere una colonna 'Date' e per ogni ticker le colonne
                        '<TICKER>_vol_forecast' e '<TICKER>_pred_return'
         """
         super(TickersPortfolioEnv, self).__init__()
@@ -19,7 +18,7 @@ class TickersPortfolioEnv(gym.Env):
         self.data = data.reset_index(drop=True)
         self.forecast_data = forecast_data.reset_index(drop=True)
         self.current_day = 0
-        self.stock_num = self.data.drop(columns=['date']).shape[1]  # si assume che le colonne dopo 'date' siano i prezzi
+        self.stock_num = self.data.drop(columns=['Date']).shape[1]  # si assume che le colonne dopo 'Date' siano i prezzi
         self.action_space = spaces.Box(low=0, high=1, shape=(self.stock_num,), dtype=np.float32)
         # Definiamo uno state space esteso (qui includiamo un vettore base, l'allocazione corrente, le previsioni e lo scaling del capitale)
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(100 + self.stock_num + self.stock_num * 2 + 1,), dtype=np.float32)
@@ -32,7 +31,7 @@ class TickersPortfolioEnv(gym.Env):
         self.current_day = 0
 
         # Inizializza i prezzi per il primo giorno
-        self.current_prices = self.data.loc[self.current_day].drop('date').values.astype(float)
+        self.current_prices = self.data.loc[self.current_day].drop('Date').values.astype(float)
 
     def weights_normalization(self, action):
         normalized_action = scipy.special.softmax(action)
@@ -42,7 +41,7 @@ class TickersPortfolioEnv(gym.Env):
         self.current_day += 1
         if self.current_day >= len(self.data):
             self.current_day = len(self.data) - 1
-        self.current_prices = self.data.loc[self.current_day].drop('date').values.astype(float)
+        self.current_prices = self.data.loc[self.current_day].drop('Date').values.astype(float)
         return self.current_prices
 
     def _get_base_state(self):
@@ -59,15 +58,15 @@ class TickersPortfolioEnv(gym.Env):
         """
         Estrae le previsioni per il giorno corrente dal forecast_data.
         Ci aspettiamo che forecast_data abbia:
-          - 'date'
+          - 'Date'
           - per ogni asset, '<TICKER>_vol_forecast'
           - per ogni asset, '<TICKER>_pred_return'
         Restituisce due vettori:
           - vol_forecast: dimensione (stock_num,)
           - pred_return: dimensione (stock_num,)
         """
-        current_date = self.data.loc[self.current_day, 'date']
-        row = self.forecast_data[self.forecast_data['date'] == current_date]
+        current_date = self.data.loc[self.current_day, 'Date']
+        row = self.forecast_data[self.forecast_data['Date'] == current_date]
         if not row.empty:
             vol_forecast = np.array([row.iloc[0][f"{ticker}_vol_forecast"] for ticker in self.config.tickers])
             pred_return = np.array([row.iloc[0][f"{ticker}_pred_return"] for ticker in self.config.tickers])
@@ -159,5 +158,5 @@ class TickersPortfolioEnv(gym.Env):
         self.current_day = 0
         self.capital = self.config.initial_asset
         self.current_allocation = np.array([1.0 / self.stock_num] * self.stock_num)
-        self.current_prices = self.data.loc[self.current_day].drop('date').values.astype(float)
+        self.current_prices = self.data.loc[self.current_day].drop('Date').values.astype(float)
         return self._get_state()

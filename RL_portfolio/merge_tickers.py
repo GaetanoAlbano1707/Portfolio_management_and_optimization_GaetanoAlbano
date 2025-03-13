@@ -15,7 +15,6 @@ def merge_ticker_csvs(tickers, output_file="./merged_tickers_data.csv"):
         df = df[['Date', 'Adj Close', 'High', 'Low', 'Open', 'Volume', 'Close', 'return', 'log_return']]
         # Rinomina le colonne per includere il ticker
         df.rename(columns={
-            'Date': "Date",
             'Adj Close': f"{ticker}_AdjClose",
             'High': f"{ticker}_High",
             'Low': f"{ticker}_Low",

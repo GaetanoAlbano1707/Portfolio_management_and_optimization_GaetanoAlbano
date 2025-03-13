@@ -1,7 +1,7 @@
 import datetime
 
 class Config():
-    def __init__(self, seed_num=2022, c_minus=0.002, c_plus=0.001, delta_minus=0.0005, delta_plus=0.0005, current_date=None):
+    def __init__(self, seed_num=2022, c_minus=0.002, c_plus=0.001, delta_minus=0.0005, delta_plus=0.0005, gamma=0.99, current_date=None):
 
         self.tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
         # Parametri di base
@@ -20,16 +20,12 @@ class Config():
         # Coefficienti quadratici
         self.delta_minus = delta_minus  # coefficiente quadratico per vendite
         self.delta_plus  = delta_plus  # coefficiente quadratico per acquisti
-
+        self.gamma = gamma
         # Parametri per il reward: bilanciamento tra profitto, costi e rischio
         self.lambda_profit = 1.0  # peso del rendimento
         self.lambda_cost   = 1.0  # peso del costo di transazione
         self.lambda_risk   = 0.5  # peso della penalizzazione per elevata volatilità forecast
 
-        # Altri parametri utili (ad es. per le feature extra derivate da GARCH/LSTM)
-        # Questi potrebbero essere utilizzati per normalizzare il capitale o per scalare gli input.
-        self.vol_forecast_scale = 1.0
-        self.pred_return_scale  = 1.0
 
         if current_date is None:
             self.cur_datetime = datetime.datetime.now().strftime('%d/%m/%Y')
@@ -56,10 +52,9 @@ class Config():
         print(f"λ_profit: {self.lambda_profit}")
         print(f"λ_cost: {self.lambda_cost}")
         print(f"λ_risk: {self.lambda_risk}")
-
+        print(f"gamma = {self.gamma}")
         print("\n--- Parametri extra ---")
-        print(f"Volatility Forecast Scale: {self.vol_forecast_scale}")
-        print(f"Predicted Return Scale: {self.pred_return_scale}")
+
 
         print("\n--- Tickers Considerati ---")
         print(", ".join(self.tickers))

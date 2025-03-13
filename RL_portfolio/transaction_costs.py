@@ -7,7 +7,7 @@ import os
 # PARAMETRI DI CONFIGURAZIONE
 # -----------------------
 
-gamma = 1.0  # Parametro di avversione al rischio (da calibrare)
+gamma = 0.99  # Parametro di avversione al rischio (da calibrare)
 assets = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
 n_assets = len(assets)
 
