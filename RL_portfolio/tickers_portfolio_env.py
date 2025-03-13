@@ -147,6 +147,8 @@ class TickersPortfolioEnv(gym.Env):
                 - self.config.lambda_risk * np.std(self.capital_hist[-5:])
                 + 0.1 * (day_return / (np.std(self.capital_hist[-5:]) + 1e-6))
         )
+        if np.isnan(reward) or np.isinf(reward):
+            reward = -1  # Penalizzazione in caso di errore numerico
 
         next_state = self._get_state()
         done = self._check_done()

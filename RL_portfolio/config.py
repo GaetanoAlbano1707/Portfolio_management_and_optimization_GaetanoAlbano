@@ -5,7 +5,7 @@ import pandas as pd
 import datetime
 
 class Config():
-    def __init__(self, seed_num=2022, c_minus=0.002, c_plus=0.001, delta_minus=0.001, delta_plus=0.001, current_date=None):
+    def __init__(self, seed_num=2022, c_minus=0.002, c_plus=0.001, delta_minus=0.0005, delta_plus=0.0005, current_date=None):
 
         self.tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
         # Parametri di base
