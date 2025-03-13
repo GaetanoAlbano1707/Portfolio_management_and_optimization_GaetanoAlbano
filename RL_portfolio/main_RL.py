@@ -3,7 +3,7 @@ import pandas as pd
 from config import Config
 from tickers_portfolio_env import TickersPortfolioEnv
 from stable_baselines3 import TD3
-from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.callbacks import EvalCallback,  CheckpointCallback
 from load_file import download_tickers
 
 
@@ -22,6 +22,9 @@ def main():
                                  log_path="./logs/", eval_freq=10000, deterministic=True)
 
     model = TD3("MlpPolicy", env, verbose=1, learning_rate=config.learning_rate, seed=config.seed_num)
+
+    checkpoint_callback = CheckpointCallback(save_freq=20000, save_path="./checkpoints/",
+                                             name_prefix="TD3_transaction_cost")
     model.learn(total_timesteps=100000, callback=eval_callback)
 
     # Salva il modello addestrato

@@ -23,7 +23,6 @@ def merge_forecast_csvs(folder_path, output_file="./merged_forecast_data.csv"):
 
     merged_forecast.sort_values('Date', inplace=True)
     merged_forecast = pd.concat(df_list, axis=1).fillna(method='ffill').fillna(method='bfill')
-    merged_forecast.to_csv(output_file, index=False)
     merged_forecast.reset_index(drop=True, inplace=True)
     merged_forecast.to_csv(output_file, index=False)
     print(f"Dataset forecast unificato salvato in {output_file}")

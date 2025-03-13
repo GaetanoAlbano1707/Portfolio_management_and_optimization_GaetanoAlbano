@@ -22,6 +22,8 @@ class TickersPortfolioEnv(gym.Env):
         self.action_space = spaces.Box(low=0, high=1, shape=(self.stock_num,), dtype=np.float32)
         # Definiamo uno state space esteso (qui includiamo un vettore base, l'allocazione corrente, le previsioni e lo scaling del capitale)
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(100 + self.stock_num + self.stock_num * 2 + 1,), dtype=np.float32)
+        self.capital_hist= [self.capital]
+
 
         # Stato iniziale del portafoglio: pesi uguali
         self.current_allocation = np.array([1.0 / self.stock_num] * self.stock_num)
@@ -31,9 +33,9 @@ class TickersPortfolioEnv(gym.Env):
         # Inizializza i prezzi per il primo giorno
         self.current_prices = self.data.loc[self.current_day].drop('date').values.astype(float)
 
-
     def weights_normalization(self, action):
-        return scipy.special.softmax(action)
+        normalized_action = scipy.special.softmax(action)
+        return normalized_action / np.sum(normalized_action)  # Assicura che sommi a 1
 
     def get_next_prices(self):
         self.current_day += 1
@@ -45,11 +47,12 @@ class TickersPortfolioEnv(gym.Env):
     def _get_base_state(self):
         last_n_days = 5  # Può essere regolato
         start_idx = max(0, self.current_day - last_n_days)
-        recent_vol_forecast = self.forecast_data.iloc[start_idx:self.current_day][
-            f"{self.config.tickers[0]}_vol_forecast"].mean()
-        recent_pred_return = self.forecast_data.iloc[start_idx:self.current_day][
-            f"{self.config.tickers[0]}_pred_return"].mean()
-        return np.array([recent_vol_forecast, recent_pred_return])
+
+        vol_forecast_mean = self.forecast_data.iloc[start_idx:self.current_day].filter(
+            like='_vol_forecast').mean().mean()
+        pred_return_mean = self.forecast_data.iloc[start_idx:self.current_day].filter(like='_pred_return').mean().mean()
+
+        return np.array([vol_forecast_mean, pred_return_mean])
 
     def _get_forecast_features(self):
         """
@@ -117,6 +120,9 @@ class TickersPortfolioEnv(gym.Env):
 
         # Aggiorna il capitale sottraendo il costo (ipotizzando che il costo sia una percentuale)
         self.capital *= (1 - total_cost)
+        self.capital_hist.append(self.capital)
+        if len(self.capital_hist) > 100:  # Mantiene solo gli ultimi 100 valori
+            self.capital_hist.pop(0)
 
         # Aggiorna il portafoglio corrente con i nuovi pesi ottenuti dall'ottimizzazione
         self.current_allocation = w_opt.copy()
@@ -132,8 +138,7 @@ class TickersPortfolioEnv(gym.Env):
         reward = (
                 self.config.lambda_profit * day_return
                 - self.config.lambda_cost * total_cost
-                - self.config.lambda_risk * np.std(
-            self.capital_hist[-5:])  # Penalizza alta volatilità negli ultimi 5 step
+                - self.config.lambda_risk * np.std(self.capital_hist[-5:])  # Penalizza alta volatilità negli ultimi 5 step
                 + 0.1 * (day_return / (np.std(self.capital_hist[-5:]) + 1e-6))  # Aumenta Sharpe Ratio
         )
 

@@ -148,7 +148,7 @@ def optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, gamma=1
 
     # Vincolo di relazione
     constraints = [
-        cp.sum(w) <= 1,  # Evita sovrainvestimento
+        cp.sum(w) + cp.sum(cp.multiply(c_minus, delta_minus) + cp.multiply(c_plus, delta_plus)) <= 1,
         cp.sum(delta_minus) <= cp.sum(delta_plus),  # Evita squilibri
         cp.sum(cp.multiply(c_minus, delta_minus) + cp.multiply(c_plus, delta_plus)) <= 0.01  # Limita i costi
     ]
