@@ -34,7 +34,7 @@ class Config():
         self.pred_return_scale  = 1.0
 
         if current_date is None:
-            self.cur_datetime = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+            self.cur_datetime = datetime.datetime.now().strftime('%d/%m/%Y')
         else:
             self.cur_datetime = current_date
 

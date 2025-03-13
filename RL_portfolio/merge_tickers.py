@@ -4,7 +4,7 @@ import glob
 import pandas as pd
 
 
-def merge_ticker_csvs(folder_path, output_file="merged_tickers_data.csv"):
+def merge_ticker_csvs(folder_path, output_file="./merged_tickers_data.csv"):
     csv_files = glob.glob(os.path.join(folder_path, "*_data.csv"))
     df_list = []
     for file in csv_files:

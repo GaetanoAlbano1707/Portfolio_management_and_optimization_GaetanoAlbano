@@ -1,15 +1,16 @@
-# extended_stock_portfolio_env.py
 import numpy as np
 import gym
 from gym import spaces
-from transaction_cost import quadratic_transaction_cost
-
+import pandas as pd
+from transaction_costs import optimize_with_transaction_costs  # importiamo la nostra funzione di ottimizzazione
+import scipy.special
 
 class TickersPortfolioEnv(gym.Env):
     def __init__(self, config, data, forecast_data, mode='train'):
         """
-        data: DataFrame contenente i dati storici. Deve avere almeno le colonne 'date' e 'Adj Close'
-        forecast_data: DataFrame con le previsioni, colonna 'date' allineata a data, e colonne 'vol_forecast' e 'pred_return'
+        data: DataFrame contenente i dati storici. Deve avere almeno le colonne 'date' e i prezzi (es. 'Adj Close')
+        forecast_data: DataFrame con le previsioni. Deve avere una colonna 'date' e per ogni ticker le colonne
+                       '<TICKER>_vol_forecast' e '<TICKER>_pred_return'
         """
         super(TickersPortfolioEnv, self).__init__()
         self.config = config
@@ -17,25 +18,22 @@ class TickersPortfolioEnv(gym.Env):
         self.data = data.reset_index(drop=True)
         self.forecast_data = forecast_data.reset_index(drop=True)
         self.current_day = 0
-        self.stock_num = self.data.drop(columns=['date']).shape[1]  # assumiamo che le colonne (es. XLK, XLV, ...) siano dopo 'date'
+        self.stock_num = self.data.drop(columns=['date']).shape[1]  # si assume che le colonne dopo 'date' siano i prezzi
         self.action_space = spaces.Box(low=0, high=1, shape=(self.stock_num,), dtype=np.float32)
-        # Definiamo uno state space esteso: esempio dimensione 100+stock_num+2+1 (base_state + allocazione + previsioni + capital scaling)
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(100 + self.stock_num + 2 + 1,),
-                                            dtype=np.float32)
+        # Definiamo uno state space esteso (qui includiamo un vettore base, l'allocazione corrente, le previsioni e lo scaling del capitale)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(100 + self.stock_num + self.stock_num * 2 + 1,), dtype=np.float32)
 
-        # Stato iniziale del portafoglio
+        # Stato iniziale del portafoglio: pesi uguali
         self.current_allocation = np.array([1.0 / self.stock_num] * self.stock_num)
         self.capital = config.initial_asset
+        self.current_day = 0
 
-        # Inizializza i prezzi per il primo giorno (si assume che ogni riga di data rappresenti i prezzi di chiusura per quel giorno)
+        # Inizializza i prezzi per il primo giorno
         self.current_prices = self.data.loc[self.current_day].drop('date').values.astype(float)
 
+
     def weights_normalization(self, action):
-        # Puoi utilizzare softmax oppure una normalizzazione semplice
-        action = np.array(action)
-        if np.sum(np.abs(action)) == 0:
-            return np.array([1.0 / self.stock_num] * self.stock_num)
-        return action / np.sum(np.abs(action))
+        return scipy.special.softmax(action)
 
     def get_next_prices(self):
         self.current_day += 1
@@ -45,32 +43,46 @@ class TickersPortfolioEnv(gym.Env):
         return self.current_prices
 
     def _get_base_state(self):
-        # Per semplicità, creiamo un vettore base casuale. Nella tua implementazione questo includerebbe indicatori tecnici, etc.
-        return np.random.randn(100)
+        last_n_days = 5  # Può essere regolato
+        start_idx = max(0, self.current_day - last_n_days)
+        recent_vol_forecast = self.forecast_data.iloc[start_idx:self.current_day][
+            f"{self.config.tickers[0]}_vol_forecast"].mean()
+        recent_pred_return = self.forecast_data.iloc[start_idx:self.current_day][
+            f"{self.config.tickers[0]}_pred_return"].mean()
+        return np.array([recent_vol_forecast, recent_pred_return])
 
     def _get_forecast_features(self):
-        # Ottieni il forecast per la data corrente
+        """
+        Estrae le previsioni per il giorno corrente dal forecast_data.
+        Ci aspettiamo che forecast_data abbia:
+          - 'date'
+          - per ogni asset, '<TICKER>_vol_forecast'
+          - per ogni asset, '<TICKER>_pred_return'
+        Restituisce due vettori:
+          - vol_forecast: dimensione (stock_num,)
+          - pred_return: dimensione (stock_num,)
+        """
         current_date = self.data.loc[self.current_day, 'date']
-        forecast_row = self.forecast_data[self.forecast_data['date'] == current_date]
-        if not forecast_row.empty:
-            vol_forecast = forecast_row['vol_forecast'].values[0]
-            pred_return = forecast_row['pred_return'].values[0]
+        row = self.forecast_data[self.forecast_data['date'] == current_date]
+        if not row.empty:
+            vol_forecast = np.array([row.iloc[0][f"{ticker}_vol_forecast"] for ticker in self.config.tickers])
+            pred_return = np.array([row.iloc[0][f"{ticker}_pred_return"] for ticker in self.config.tickers])
         else:
-            vol_forecast = 0.0
-            pred_return = 0.0
-        return np.array([vol_forecast, pred_return])
+            vol_forecast = np.zeros(self.stock_num)
+            pred_return = np.zeros(self.stock_num)
+        return vol_forecast, pred_return
 
     def _get_state(self):
-        # Combina il base state, la normalizzazione del capitale, l'allocazione corrente e le feature di forecast
-        base_state = self._get_base_state()
-        capital_scaled = np.array([self.capital / self.config.initial_asset])
+        # Combina il base state, l'allocazione corrente, le previsioni (vol e ritorni per ciascun asset) e il capitale scalato
+        base_state = self._get_base_state()  # dimensione 100
         alloc_state = self.current_allocation  # dimensione stock_num
-        forecast_features = self._get_forecast_features()  # 2 elementi
-        state = np.concatenate([base_state, alloc_state, forecast_features, capital_scaled])
+        vol_forecast, pred_return = self._get_forecast_features()  # ciascuno di dimensione stock_num
+        capital_scaled = np.array([self.capital / self.config.initial_asset])
+        state = np.concatenate([base_state, alloc_state, vol_forecast, pred_return, capital_scaled])
         return state
 
     def _compute_portfolio_return(self, new_prices):
-        # Calcola il rendimento del portafoglio: (new_prices / current_prices - 1) * allocation
+        # Calcola il rendimento del portafoglio in base alla variazione dei prezzi
         returns = new_prices / self.current_prices - 1
         return np.dot(self.current_allocation, returns)
 
@@ -78,36 +90,52 @@ class TickersPortfolioEnv(gym.Env):
         return self.current_day >= len(self.data) - 1
 
     def step(self, action):
-        # Normalizza l'azione (i pesi)
-        weights = self.weights_normalization(action)
-        # Calcola i costi di transazione in base alla differenza tra la nuova allocazione e quella attuale
-        total_cost, _ = quadratic_transaction_cost(
-            w_new=weights,
-            w_old=self.current_allocation,
+        # L'agente propone un'azione: una nuova allocazione (non ancora normalizzata)
+        proposed_weights = self.weights_normalization(action)
+
+        # Estrai le previsioni dal forecast_data per il giorno corrente per costruire mu e Sigma:
+        vol_forecast, pred_return = self._get_forecast_features()
+        # Usiamo pred_return come vettore dei ritorni attesi (mu)
+        mu = pred_return
+        # Costruiamo una matrice Sigma semplificata come: Sigma = diag(vol_forecast^2)
+        # (Assumiamo correlazioni nulle; in una versione più avanzata potresti usare una matrice di correlazione)
+        D = np.diag(vol_forecast)
+        Sigma = D @ D  # equivalente a diag(vol_forecast^2)
+
+        # Ora, invece di applicare direttamente l'azione, usiamo il nostro modulo di ottimizzazione con costi:
+        # Il portafoglio corrente è self.current_allocation, e i costi e gamma sono passati da config.
+        w_opt, delta_minus_opt, delta_plus_opt = optimize_with_transaction_costs(
+            mu=mu,
+            Sigma=Sigma,
+            w_tilde=self.current_allocation,
             c_minus=self.config.c_minus,
             c_plus=self.config.c_plus,
-            delta_minus=self.config.delta_minus,
-            delta_plus=self.config.delta_plus
+            gamma=self.config.gamma
         )
-        # Aggiorna il capitale sottraendo il costo (per semplicità, lo consideriamo come una percentuale di capitale)
+        # Calcola il costo totale (somma dei costi unitari * quantità)
+        total_cost = np.sum(self.config.c_minus * delta_minus_opt + self.config.c_plus * delta_plus_opt)
+
+        # Aggiorna il capitale sottraendo il costo (ipotizzando che il costo sia una percentuale)
         self.capital *= (1 - total_cost)
 
-        # Aggiorna l'allocazione (dopo aver pagato il costo, normalizziamo per rispettare il vincolo di budget)
-        self.current_allocation = weights.copy()  # Potresti anche normalizzare con: weights / (1+total_cost) se preferisci
+        # Aggiorna il portafoglio corrente con i nuovi pesi ottenuti dall'ottimizzazione
+        self.current_allocation = w_opt.copy()
 
-        # Calcola il rendimento in base ai prezzi: prima memorizziamo i prezzi correnti per il calcolo
+        # Aggiorna i prezzi: simula il passaggio al giorno successivo
         old_prices = self.current_prices.copy()
         new_prices = self.get_next_prices()
         day_return = self._compute_portfolio_return(new_prices)
-        # Aggiorna il capitale con il rendimento ottenuto
+        # Aggiorna il capitale in base al rendimento ottenuto
         self.capital *= (1 + day_return)
 
-        # Calcola un "reward" che tenga conto del profitto, dei costi e del rischio (qui penalizziamo in base alla volatilità forecast)
-        forecast_features = self._get_forecast_features()
-        vol_forecast = forecast_features[0]
-        reward = (self.config.lambda_profit * day_return
-                  - self.config.lambda_cost * total_cost
-                  - self.config.lambda_risk * vol_forecast)
+        # Calcola il reward
+        reward = (
+                self.config.lambda_profit * day_return
+                - self.config.lambda_cost * total_cost
+                - self.config.lambda_risk * np.std(
+            self.capital_hist[-5:])  # Penalizza alta volatilità negli ultimi 5 step
+                + 0.1 * (day_return / (np.std(self.capital_hist[-5:]) + 1e-6))  # Aumenta Sharpe Ratio
+        )
 
         next_state = self._get_state()
         done = self._check_done()
