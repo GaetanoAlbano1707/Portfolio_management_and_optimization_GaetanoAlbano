@@ -121,15 +121,20 @@ for quarter, group in log_returns_df.groupby("quarter"):
 # -----------------------
 # 6. CALCOLO DELLA MATRICE DI COVARIANZA (per ciascun blocco di 10 giorni)
 # -----------------------
-def get_covariance_matrix(row):
+def get_covariance_matrix(row, alpha=0.1):
     vol_vector = np.array([row[f"{ticker}_pred_volatility"] for ticker in assets])
     D = np.diag(vol_vector)
     quarter = pd.to_datetime(row["Date"]).to_period("Q")
     corr = quarter_corr.get(str(quarter))
+
     if corr is None:
         corr = np.eye(n_assets)
+    else:
+        corr = (1 - alpha) * corr + alpha * np.eye(n_assets)  # Smorzamento della correlazione
+
     Sigma = D @ corr @ D
     return Sigma
+
 
 
 blocks_df["Sigma"] = blocks_df.apply(get_covariance_matrix, axis=1)
@@ -139,31 +144,37 @@ blocks_df["Sigma"] = blocks_df.apply(get_covariance_matrix, axis=1)
 # 7. OTTIMIZZAZIONE CON COSTI DI TRANSAZIONE
 # -----------------------
 # Definiamo una funzione per risolvere l'ottimizzazione con costi di transazione.
-def optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, gamma=1.0):
+def optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, delta_minus, delta_plus, gamma=1.0):
     n = len(mu)
-    # Variabili: nuovo portafoglio, quantità da vendere (delta_minus) e da comprare (delta_plus)
-    w = cp.Variable(n)
-    delta_minus = cp.Variable(n)
-    delta_plus = cp.Variable(n)
 
-    # Vincolo di relazione
+    # Variabili di ottimizzazione
+    w = cp.Variable(n)
+    delta_minus_var = cp.Variable(n)  # Quantità da vendere
+    delta_plus_var = cp.Variable(n)  # Quantità da comprare
+
+    # Calcolo dei costi quadratici
+    quadratic_cost = cp.sum(cp.multiply(delta_minus, cp.square(delta_minus_var))) + \
+                     cp.sum(cp.multiply(delta_plus, cp.square(delta_plus_var)))
+
+    # Funzione di costo totale (lineare + quadratica)
+    total_transaction_cost = cp.sum(cp.multiply(c_minus, delta_minus_var) +
+                                    cp.multiply(c_plus, delta_plus_var)) + quadratic_cost
+
+    # Vincoli di ottimizzazione
     constraints = [
-        cp.sum(w) + cp.sum(cp.multiply(c_minus, delta_minus) + cp.multiply(c_plus, delta_plus)) <= 1,
-        cp.sum(delta_minus) <= cp.sum(delta_plus),  # Evita squilibri
-        cp.sum(cp.multiply(c_minus, delta_minus) + cp.multiply(c_plus, delta_plus)) <= 0.01  # Limita i costi
+        cp.sum(w) + total_transaction_cost <= 1,  # Budget constraint corretto
+        cp.sum(delta_minus_var) <= cp.sum(delta_plus_var),  # Evita squilibri
+        total_transaction_cost <= 0.01  # Limita i costi di transazione totali
     ]
 
+    # Funzione obiettivo (Mean-Variance con costi di transazione)
+    objective = cp.Minimize(0.5 * cp.quad_form(w, Sigma) - gamma * (w @ mu - total_transaction_cost))
 
-    # Costo totale di transazione
-    transaction_cost = cp.sum(cp.multiply(c_minus, delta_minus) + cp.multiply(c_plus, delta_plus))
-
-    # Funzione obiettivo: minimizzare 1/2 * w^T Sigma w - gamma*(w^T mu - transaction_cost)
-    objective = cp.Minimize(0.5 * cp.quad_form(w, Sigma) - gamma * (w @ mu - transaction_cost))
-
+    # Risoluzione del problema
     prob = cp.Problem(objective, constraints)
     prob.solve()
 
-    return w.value, delta_minus.value, delta_plus.value
+    return w.value, delta_minus_var.value, delta_plus_var.value
 
 
 # Inizialmente, il portafoglio corrente (w_tilde) è uguale per tutti gli asset

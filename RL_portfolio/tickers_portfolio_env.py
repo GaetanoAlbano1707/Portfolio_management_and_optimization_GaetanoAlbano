@@ -113,8 +113,11 @@ class TickersPortfolioEnv(gym.Env):
             w_tilde=self.current_allocation,
             c_minus=self.config.c_minus,
             c_plus=self.config.c_plus,
+            delta_minus=self.config.delta_minus,  # Passiamo i parametri corretti
+            delta_plus=self.config.delta_plus,
             gamma=self.config.gamma
         )
+
         # Calcola il costo totale (somma dei costi unitari * quantità)
         total_cost = np.sum(self.config.c_minus * delta_minus_opt + self.config.c_plus * delta_plus_opt)
 
@@ -134,12 +137,14 @@ class TickersPortfolioEnv(gym.Env):
         # Aggiorna il capitale in base al rendimento ottenuto
         self.capital *= (1 + day_return)
 
-        # Calcola il reward
+        quadratic_penalty = np.sum(self.config.delta_minus * (np.array(delta_minus_opt) ** 2)) + \
+                            np.sum(self.config.delta_plus * (np.array(delta_plus_opt) ** 2))
+
         reward = (
                 self.config.lambda_profit * day_return
-                - self.config.lambda_cost * total_cost
-                - self.config.lambda_risk * np.std(self.capital_hist[-5:])  # Penalizza alta volatilità negli ultimi 5 step
-                + 0.1 * (day_return / (np.std(self.capital_hist[-5:]) + 1e-6))  # Aumenta Sharpe Ratio
+                - self.config.lambda_cost * (total_cost + quadratic_penalty)
+                - self.config.lambda_risk * np.std(self.capital_hist[-5:])
+                + 0.1 * (day_return / (np.std(self.capital_hist[-5:]) + 1e-6))
         )
 
         next_state = self._get_state()
