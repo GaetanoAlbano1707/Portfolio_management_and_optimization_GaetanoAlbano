@@ -13,6 +13,7 @@ class TickersPortfolioEnv(gym.Env):
                        '<TICKER>_vol_forecast' e '<TICKER>_pred_return'
         """
         super(TickersPortfolioEnv, self).__init__()
+
         self.config = config
         self.mode = mode
         self.data = data.reset_index(drop=True)

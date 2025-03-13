@@ -31,9 +31,9 @@ def main():
     checkpoint_callback = CheckpointCallback(save_freq=20000, save_path="./checkpoints/",
                                              name_prefix="TD3_transaction_cost")
 
-
-    torch.cuda.empty_cache()  # Libera memoria GPU prima di iniziare il training
-    model.learn(total_timesteps=100000, callback=eval_callback)
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    model.learn(total_timesteps=100000, callback=[eval_callback, checkpoint_callback])
 
     # Salva il modello addestrato
     model.save("TD3_extended_transaction_cost_model")

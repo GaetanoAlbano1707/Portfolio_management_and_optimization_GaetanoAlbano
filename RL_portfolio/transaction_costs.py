@@ -136,8 +136,8 @@ def get_covariance_matrix(row, alpha=0.1):
     # Se la matrice Sigma contiene NaN o numeri negativi sulla diagonale → fallback a matrice diagonale
     if np.isnan(Sigma).any() or np.any(np.diag(Sigma) <= 0):
         Sigma = np.eye(len(vol_vector)) * (np.mean(vol_vector) if np.mean(vol_vector) > 0 else 1.0)
-    if np.linalg.det(Sigma) <= 0 or np.isnan(Sigma).any():
-        Sigma += np.eye(len(Sigma)) * 1e-4  # Aggiunge una piccola matrice identità per garantire positività
+    if np.linalg.det(Sigma) <= 1e-6 or np.isnan(Sigma).any():
+        Sigma += np.eye(len(Sigma)) * 1e-2  # Rende Σ ben condizionata
     return Sigma
 
 
