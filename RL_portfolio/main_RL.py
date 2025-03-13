@@ -4,21 +4,25 @@ from config import Config
 from tickers_portfolio_env import TickersPortfolioEnv
 from stable_baselines3 import TD3
 from stable_baselines3.common.callbacks import EvalCallback,  CheckpointCallback
-from load_file import download_tickers
+from merge_tickers import merge_ticker_csvs
+from merge_forecast_results import merge_forecast_csvs
 import os
 import torch
 
 
 def main():
-    if not os.path.exists("dati_storici.csv") or not os.path.exists("forecast_data.csv"):
-        print("Errore: I file dati_storici.csv o forecast_data.csv non esistono. Esegui il preprocessing prima.")
-        exit(1)
+    tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
+
     # Carica i dati storici dei prezzi (assicurati che il CSV abbia colonna 'date' e colonne per ogni ticker)
-    data = pd.read_csv("dati_storici.csv", parse_dates=['date'])
+    data = merge_ticker_csvs(tickers, './Tickers_file/')
     # Per semplicità, assumiamo che il CSV sia già nel formato: ogni riga una data e ogni colonna (oltre 'date') è il prezzo di chiusura di un asset.
 
     # Carica i forecast ottenuti dal modello GARCH-LSTM (CSV con colonne: 'date', 'vol_forecast', 'pred_return')
-    forecast_data = pd.read_csv("forecast_data.csv", parse_dates=['date'])
+    forecast_data = merge_forecast_csvs(tickers, './PORTFOLIO_MANAGEMENT_AND_OPTIMIZATION_GaetanoAlbano/Risultati_GARCH_LSTM_Forecasting/')
+
+    if data is None or forecast_data is None:
+        print("Errore: I dati storici o i forecast non sono stati generati correttamente.")
+        exit(1)
 
     config = Config(seed_num=2022)
     env = TickersPortfolioEnv(config=config, data=data, forecast_data=forecast_data, mode='train')

@@ -41,12 +41,33 @@ class Config():
             self.cur_datetime = current_date
 
     def print_config(self):
-        print("Configurazione RL e transazioni:")
-        print("Initial Asset:", self.initial_asset)
-        print("c_minus:", self.c_minus, "c_plus:", self.c_plus)
-        print("delta_minus:", self.delta_minus, "delta_plus:", self.delta_plus)
-        print("λ_profit:", self.lambda_profit, "λ_cost:", self.lambda_cost, "λ_risk:", self.lambda_risk)
-        # ... stampare altri parametri se necessario
+        print("\n===== Configurazione RL e Transazioni =====")
+        print(f"Data corrente: {self.cur_datetime}")
+        print("\n--- Parametri generali ---")
+        print(f"Initial Asset: {self.initial_asset}")
+        print(f"Trading Days per Year: {self.tradeDays_per_year}")
+        print(f"Seed Number: {self.seed_num}")
+
+        print("\n--- Parametri RL ---")
+        print(f"Learning Rate: {self.learning_rate}")
+        print(f"Numero di Epoche: {self.num_epochs}")
+
+        print("\n--- Costi di Transazione ---")
+        print(f"Costi lineari -> Vendite: {self.c_minus * 100}%, Acquisti: {self.c_plus * 100}%")
+        print(f"Costi quadratici -> Vendite: {self.delta_minus}, Acquisti: {self.delta_plus}")
+
+        print("\n--- Parametri per il Reward ---")
+        print(f"λ_profit: {self.lambda_profit}")
+        print(f"λ_cost: {self.lambda_cost}")
+        print(f"λ_risk: {self.lambda_risk}")
+
+        print("\n--- Parametri extra ---")
+        print(f"Volatility Forecast Scale: {self.vol_forecast_scale}")
+        print(f"Predicted Return Scale: {self.pred_return_scale}")
+
+        print("\n--- Tickers Considerati ---")
+        print(", ".join(self.tickers))
+        print("=" * 40)
 
 if __name__ == '__main__':
     config = Config()

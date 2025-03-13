@@ -45,9 +45,3 @@ def download_tickers(tickers, start_date='01/01/2007', end_date='23/12/2024', sa
     return data_frames
 
 
-# Lista dei ticker
-tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
-
-# Scarica i dati e calcola rendimenti
-data = download_tickers(tickers)
-
