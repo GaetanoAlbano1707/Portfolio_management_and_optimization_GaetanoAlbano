@@ -5,7 +5,7 @@ import pandas as pd
 import datetime
 
 class Config():
-    def __init__(self, seed_num=2022, current_date=None):
+    def __init__(self, seed_num=2022, c_minus=0.002, c_plus=0.001, delta_minus=0.05, delta_plus=0.05, current_date=None):
         # Parametri di base
         self.initial_asset = 1000000
         self.tradeDays_per_year = 252
@@ -17,11 +17,11 @@ class Config():
 
         # PARAMETRI COSTI DI TRANSAZIONE (in percentuale)
         # Costi lineari
-        self.c_minus = 0.002   # 0.2% per vendite
-        self.c_plus  = 0.001   # 0.1% per acquisti
+        self.c_minus = c_minus   # 0.2% per vendite
+        self.c_plus  = c_plus   # 0.1% per acquisti
         # Coefficienti quadratici
-        self.delta_minus = 0.05  # coefficiente quadratico per vendite
-        self.delta_plus  = 0.05  # coefficiente quadratico per acquisti
+        self.delta_minus = delta_minus  # coefficiente quadratico per vendite
+        self.delta_plus  = delta_plus  # coefficiente quadratico per acquisti
 
         # Parametri per il reward: bilanciamento tra profitto, costi e rischio
         self.lambda_profit = 1.0  # peso del rendimento

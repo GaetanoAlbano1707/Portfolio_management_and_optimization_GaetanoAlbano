@@ -22,8 +22,8 @@ class TickersPortfolioEnv(gym.Env):
         self.action_space = spaces.Box(low=0, high=1, shape=(self.stock_num,), dtype=np.float32)
         # Definiamo uno state space esteso (qui includiamo un vettore base, l'allocazione corrente, le previsioni e lo scaling del capitale)
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(100 + self.stock_num + self.stock_num * 2 + 1,), dtype=np.float32)
-        self.capital_hist= [self.capital]
-
+        self.capital = config.initial_asset
+        self.capital_hist = [self.capital]
 
         # Stato iniziale del portafoglio: pesi uguali
         self.current_allocation = np.array([1.0 / self.stock_num] * self.stock_num)

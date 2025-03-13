@@ -133,6 +133,9 @@ def get_covariance_matrix(row, alpha=0.1):
         corr = (1 - alpha) * corr + alpha * np.eye(n_assets)  # Smorzamento della correlazione
 
     Sigma = D @ corr @ D
+    # Se la matrice Sigma contiene NaN o numeri negativi sulla diagonale → fallback a matrice diagonale
+    if np.isnan(Sigma).any() or np.any(np.diag(Sigma) <= 0):
+        Sigma = np.eye(len(vol_vector)) * (np.mean(vol_vector) if np.mean(vol_vector) > 0 else 1.0)
     return Sigma
 
 

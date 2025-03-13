@@ -5,9 +5,12 @@ from tickers_portfolio_env import TickersPortfolioEnv
 from stable_baselines3 import TD3
 from stable_baselines3.common.callbacks import EvalCallback,  CheckpointCallback
 from load_file import download_tickers
-
+import os
 
 def main():
+    if not os.path.exists("dati_storici.csv") or not os.path.exists("forecast_data.csv"):
+        print("Errore: I file dati_storici.csv o forecast_data.csv non esistono. Esegui il preprocessing prima.")
+        exit(1)
     # Carica i dati storici dei prezzi (assicurati che il CSV abbia colonna 'date' e colonne per ogni ticker)
     data = pd.read_csv("dati_storici.csv", parse_dates=['date'])
     # Per semplicità, assumiamo che il CSV sia già nel formato: ogni riga una data e ogni colonna (oltre 'date') è il prezzo di chiusura di un asset.
