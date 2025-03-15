@@ -20,10 +20,13 @@ class TickersPortfolioEnv(gym.Env):
         self.data = data.reset_index(drop=True)
         self.forecast_data = forecast_data.reset_index(drop=True)
         self.current_day = 0
-        self.stock_num = self.data.drop(columns=['Date']).shape[1]  # si assume che le colonne dopo 'Date' siano i prezzi
+        self.stock_num = len(self.config.tickers)
+        print(f"🔍 DEBUG: Numero asset (stock_num): {self.stock_num}")
         self.action_space = spaces.Box(low=0, high=1, shape=(self.stock_num,), dtype=np.float32)
         # Definiamo uno state space esteso (qui includiamo un vettore base, l'allocazione corrente, le previsioni e lo scaling del capitale)
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(100 + self.stock_num + self.stock_num * 2 + 1,), dtype=np.float32)
+        self.expected_obs_size = 100 + self.stock_num + self.stock_num * 2 + 1  # diventa 100 + 6 + 12 + 1 = 119
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self.expected_obs_size,), dtype=np.float32)
+
         self.capital = config.initial_asset
         self.capital_hist = [self.capital]
 
@@ -33,11 +36,11 @@ class TickersPortfolioEnv(gym.Env):
         self.current_day = 0
 
         # Inizializza i prezzi per il primo giorno
-        self.current_prices = self.data.loc[self.current_day].drop('Date').values.astype(float)
+        self.current_prices = self.data.loc[self.current_day, [f"{ticker}_AdjClose" for ticker in self.config.tickers]].values.astype(float)
 
     def weights_normalization(self, action):
-        normalized_action = scipy.special.softmax(action)
-        return normalized_action / np.sum(normalized_action)  # Assicura che sommi a 1
+        normalized_action = np.clip(action, 0, 1)  # Restringe tra 0 e 1
+        return normalized_action / np.sum(normalized_action)  # Normalizza a somma 1
 
     def get_next_prices(self):
         self.current_day += 1
@@ -46,44 +49,86 @@ class TickersPortfolioEnv(gym.Env):
         self.current_prices = self.data.loc[self.current_day].drop('Date').values.astype(float)
         return self.current_prices
 
+    def seed(self, seed=None):
+        np.random.seed(seed)
+
     def _get_base_state(self):
         last_n_days = 5  # Può essere regolato
         start_idx = max(0, self.current_day - last_n_days)
 
-        vol_forecast_mean = self.forecast_data.iloc[start_idx:self.current_day].filter(
-            like='_vol_forecast').mean().mean()
-        pred_return_mean = self.forecast_data.iloc[start_idx:self.current_day].filter(like='_pred_return').mean().mean()
+        vol_forecast_series = self.forecast_data.iloc[start_idx:self.current_day].filter(
+            like='_Vol_Pred').mean(axis=0)
+        pred_return_series = self.forecast_data.iloc[start_idx:self.current_day].filter(
+            like='_pred_return').mean(axis=0)
 
-        return np.array([vol_forecast_mean, pred_return_mean])
+        # Creiamo un vettore di lunghezza 100 riempiendolo con dati o 0 se mancano
+        base_state = np.zeros(100)
+        base_values = np.concatenate([vol_forecast_series.values, pred_return_series.values])
+
+        # Inseriamo i dati reali nel base_state (fino a 100 valori)
+        base_state[:len(base_values)] = base_values
+
+        print(f"🔍 DEBUG: Nuova dimensione base_state={base_state.shape[0]}")
+
+        return base_state
 
     def _get_forecast_features(self):
         """
-        Estrae le previsioni per il giorno corrente dal forecast_data.
-        Ci aspettiamo che forecast_data abbia:
-          - 'Date'
-          - per ogni asset, '<TICKER>_vol_forecast'
-          - per ogni asset, '<TICKER>_pred_return'
-        Restituisce due vettori:
-          - vol_forecast: dimensione (stock_num,)
-          - pred_return: dimensione (stock_num,)
+        Estrae le previsioni di volatilità dal forecast_data e calcola i ritorni attesi
+        (μ) usando una finestra storica dei log_return dalla serie storica (self.data).
         """
         current_date = self.data.loc[self.current_day, 'Date']
+        # Ottieni la previsione di volatilità dal forecast_data
         row = self.forecast_data[self.forecast_data['Date'] == current_date]
         if not row.empty:
-            vol_forecast = np.array([row.iloc[0][f"{ticker}_vol_forecast"] for ticker in self.config.tickers])
-            pred_return = np.array([row.iloc[0][f"{ticker}_pred_return"] for ticker in self.config.tickers])
+            vol_forecast = np.array([row.iloc[0].get(f"{ticker}_Vol_Pred", 0) for ticker in self.config.tickers])
         else:
+            print(f"⚠️ ATTENZIONE: Previsioni di volatilità mancanti per la data {current_date}, riempite con 0.")
             vol_forecast = np.zeros(self.stock_num)
-            pred_return = np.zeros(self.stock_num)
-        return vol_forecast, pred_return
+
+        # Calcola i ritorni attesi (μ) usando i log_return storici.
+        # Ad esempio, usa una finestra mobile degli ultimi N giorni (qui impostiamo N=10)
+        window_size = 10
+        start_idx = max(0, self.current_day - window_size)
+        recent_data = self.data.iloc[start_idx:self.current_day]
+
+        expected_returns = []
+        for ticker in self.config.tickers:
+            col_name = f"{ticker}_log_return"
+            if col_name in recent_data.columns:
+                mu_ticker = recent_data[col_name].mean()  # Media dei log_return della finestra
+            else:
+                mu_ticker = 0.0
+            expected_returns.append(mu_ticker)
+        expected_returns = np.array(expected_returns)
+
+        # Debug: stampa le dimensioni
+        print(
+            f"🔍 DEBUG: vol_forecast dimensione = {vol_forecast.shape}, expected_returns dimensione = {expected_returns.shape}")
+
+        return vol_forecast, expected_returns
 
     def _get_state(self):
-        # Combina il base state, l'allocazione corrente, le previsioni (vol e ritorni per ciascun asset) e il capitale scalato
-        base_state = self._get_base_state()  # dimensione 100
-        alloc_state = self.current_allocation  # dimensione stock_num
-        vol_forecast, pred_return = self._get_forecast_features()  # ciascuno di dimensione stock_num
+        base_state = self._get_base_state()
+        alloc_state = self.current_allocation
+        vol_forecast, pred_return = self._get_forecast_features()
         capital_scaled = np.array([self.capital / self.config.initial_asset])
+
+        state_parts = {
+            "base_state": base_state.shape[0],
+            "alloc_state": alloc_state.shape[0],
+            "vol_forecast": vol_forecast.shape[0],
+            "pred_return": pred_return.shape[0],
+            "capital_scaled": capital_scaled.shape[0],
+        }
+
+        print(f"🔍 DEBUG: Componenti dello stato - {state_parts}")
+
         state = np.concatenate([base_state, alloc_state, vol_forecast, pred_return, capital_scaled])
+
+        if state.shape[0] != self.expected_obs_size:
+            raise ValueError(f"Dimensione stato errata! Prevista: {self.expected_obs_size}, Ottenuta: {state.shape[0]}")
+
         return state
 
     def _compute_portfolio_return(self, new_prices):
@@ -98,10 +143,9 @@ class TickersPortfolioEnv(gym.Env):
         # L'agente propone un'azione: una nuova allocazione (non ancora normalizzata)
         proposed_weights = self.weights_normalization(action)
 
-        # Estrai le previsioni dal forecast_data per il giorno corrente per costruire mu e Sigma:
-        vol_forecast, pred_return = self._get_forecast_features()
-        # Usiamo pred_return come vettore dei ritorni attesi (mu)
-        mu = pred_return
+        vol_forecast, expected_returns = self._get_forecast_features()
+        mu = expected_returns
+
         # Costruiamo una matrice Sigma semplificata come: Sigma = diag(vol_forecast^2)
         # (Assumiamo correlazioni nulle; in una versione più avanzata potresti usare una matrice di correlazione)
         D = np.diag(vol_forecast)
@@ -115,7 +159,7 @@ class TickersPortfolioEnv(gym.Env):
             w_tilde=self.current_allocation,
             c_minus=self.config.c_minus,
             c_plus=self.config.c_plus,
-            delta_minus=self.config.delta_minus,  # Passiamo i parametri corretti
+            delta_minus=self.config.delta_minus,
             delta_plus=self.config.delta_plus,
             gamma=self.config.gamma
         )
@@ -161,4 +205,6 @@ class TickersPortfolioEnv(gym.Env):
         self.capital = self.config.initial_asset
         self.current_allocation = np.array([1.0 / self.stock_num] * self.stock_num)
         self.current_prices = self.data.loc[self.current_day].drop('Date').values.astype(float)
-        return self._get_state()
+        state = self._get_state()
+        print(f"🔍 DEBUG: Dimensione stato: {state.shape}, Prevista: {self.expected_obs_size}")
+        return state

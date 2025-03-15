@@ -1,7 +1,7 @@
 import datetime
 
 class Config():
-    def __init__(self, seed_num=2022, c_minus=0.002, c_plus=0.001, delta_minus=0.0005, delta_plus=0.0005, gamma=0.99, current_date=None):
+    def __init__(self, seed_num=2022, c_minus=0.002, c_plus=0.001, delta_minus=0.0005, delta_plus=0.0005, gamma=0.95, current_date=None):
 
         self.tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI']
         # Parametri di base
@@ -10,7 +10,7 @@ class Config():
         self.seed_num = seed_num
 
         # Parametri RL
-        self.learning_rate = 0.0001
+        self.learning_rate = 0.0003 # Maggiore per favorire una convergenza più rapida
         self.num_epochs = 50
 
         # PARAMETRI COSTI DI TRANSAZIONE (in percentuale)

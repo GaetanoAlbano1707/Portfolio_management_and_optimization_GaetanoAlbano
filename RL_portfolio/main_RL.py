@@ -14,7 +14,7 @@ def main():
     data = pd.read_csv("./Tickers_file/merged_tickers_data.csv", parse_dates=['Date'])
     # Per semplicità, assumiamo che il CSV sia già nel formato: ogni riga una data e ogni colonna (oltre 'Date') è il prezzo di chiusura di un asset.
 
-    # Carica i forecast ottenuti dal modello GARCH-LSTM (CSV con colonne: 'Date', 'vol_forecast', 'pred_return')
+    # Carica i forecast ottenuti dal modello GARCH-LSTM (CSV con colonne: 'Date', '_Vol_Pred', 'pred_return')
     forecast_data = pd.read_csv("./Tickers_file/merged_forecast_results.csv", parse_dates=['Date'])
 
     config = Config(seed_num=2022)
@@ -30,7 +30,7 @@ def main():
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    model.learn(total_timesteps=100000, callback=[eval_callback, checkpoint_callback])
+    model.learn(total_timesteps=500000, callback=[eval_callback, checkpoint_callback])
 
     # Salva il modello addestrato
     model.save("TD3_extended_transaction_cost_model")
