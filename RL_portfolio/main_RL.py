@@ -5,7 +5,7 @@ from stable_baselines3 import TD3
 from stable_baselines3.common.callbacks import EvalCallback,  CheckpointCallback
 import os
 import torch
-
+from transaction_costs import log_returns_df
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     forecast_data = pd.read_csv("./Tickers_file/merged_forecast_results.csv", parse_dates=['Date'])
 
     config = Config(seed_num=2022)
-    env = TickersPortfolioEnv(config=config, data=data, forecast_data=forecast_data, mode='train')
+    env = TickersPortfolioEnv(config=config, data=data, forecast_data=forecast_data, log_returns_df=log_returns_df, mode='train')
 
     eval_callback = EvalCallback(env, best_model_save_path="./logs/",
                                  log_path="./logs/", eval_freq=10000, deterministic=True)

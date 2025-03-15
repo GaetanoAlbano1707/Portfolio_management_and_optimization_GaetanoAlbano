@@ -22,9 +22,13 @@ c_plus = 0.001 * np.ones(n_assets)
 
 
 # -----------------------
-# 1. CARICAMENTO DEI DATI DI RITORNO
+# 1. CARICAMENTO DEI DATI DI RITORNO E CREAZIONE FILE MERGIATI DEI VARI TICKERS per ottenere R
 # -----------------------
 def merge_log_returns(tickers, directory="./Tickers_file/", output_file="./merged_log_returns.csv"):
+    """
+    CALCOLO R, vettore dei rendimenti storici sui dati storici reali
+
+    """
     merged_df = None
     for ticker in tickers:
         file_path = os.path.join(directory, f"{ticker}_data.csv")
@@ -56,43 +60,48 @@ log_returns_df['Date'] = pd.to_datetime(log_returns_df['Date'])
 log_returns_df.sort_values("Date", inplace=True)
 
 
+'''
+in questo punto ho tutto il file mergiato dei log_return ed ho R
+'''
+
+
+#2 CALCOLO mu con finestra mobile e stima delle tendenze recenti, in maniera differente da R
+def calculate_mu(assets, merged_df, current_date, window_size=20):
+    """
+    Calcola il vettore dei ritorni attesi μ per ciascun asset usando una finestra mobile
+    di log_return giornalieri precedenti alla data corrente.
+
+    Parameters:
+    - assets: lista dei ticker
+    - merged_df: DataFrame giornaliero contenente le colonne 'Date' e per ogni asset '<TICKER>_log_return'
+    - current_date: la data (string o datetime) per cui calcolare μ
+    - window_size: numero di giorni da considerare nella finestra mobile
+
+    Returns:
+    - mu_vector: array numpy con la media mobile dei log_return per ogni asset
+    """
+    # Assicurati che current_date sia in formato datetime
+    current_date = pd.to_datetime(current_date)
+
+    # Filtra il DataFrame per le date precedenti a current_date
+    df_window = merged_df[merged_df['Date'] < current_date].tail(window_size)
+
+    mu_vector = []
+    for ticker in assets:
+        col_name = f"{ticker}_log_return"
+        if col_name in df_window.columns and not df_window.empty:
+            mu_val = df_window[col_name].mean()  # Media dei log_return della finestra
+        else:
+            mu_val = 0.0  # Se non c'è il dato, assegna 0
+        mu_vector.append(mu_val)
+    return np.array(mu_vector)
+
+
 # -----------------------
-# 2. AGGREGAZIONE A BLOCCO DI 10 GIORNI
+# 3. CARICAMENTO DELLA VOLATILITÀ PREDETTA PER AVERE POI LA MATRICE DI COVARIANZA (IN QUESTO MOMENTO HO SOLO QUELLA PREDETTA DAL 2019 AL 2024)
+#DEVO SOLO DECIDERE SE COLLEGARE I DATI DI VOLATILITA' REALI FINO AL 2019.12.20 E POI UNIRE QUELLI PREDETTI
 # -----------------------
-def group_blocks(df, block_size=10):
-    df = df.copy()
-
-    # Rimuove righe in eccesso per evitare problemi di dimensione
-    rows_to_keep = (len(df) // block_size) * block_size
-    df = df.iloc[:rows_to_keep]
-
-    df['block'] = np.repeat(np.arange(len(df) // block_size), block_size)
-
-    grouped = df.groupby('block').agg({col: 'sum' for col in df.columns if col.endswith('_log_return')})
-    grouped['Date'] = df.groupby('block')['Date'].first().values
-
-    return grouped
-
-
-blocks_df = group_blocks(log_returns_df, block_size=10)
-print("🔍 Controlliamo Sigma:")
-print(blocks_df.info())
-print(blocks_df.head())
-
-
-# -----------------------
-# 3. CALCOLO DEL VETTORE DEI RITORNI ATTESI (μ)
-# -----------------------
-mask_mu = (blocks_df["Date"] >= pd.to_datetime(start_date)) & (blocks_df["Date"] <= pd.to_datetime(end_date))
-blocks_recent = blocks_df[mask_mu]
-mu = blocks_recent[[f"{ticker}_log_return" for ticker in assets]].mean().values
-print("✅ Vettore dei ritorni attesi (μ) calcolato:", mu)
-
-
-# -----------------------
-# 4. CARICAMENTO DELLA VOLATILITÀ PREDETTA
-# -----------------------
-def merge_results_Garch_LSTM(tickers, directory= "./Risultati_GARCH_LSTM_Forecasting/",  output_file="./merged_Results_Garch_LSTM.csv"):
+def merge_results_Garch_LSTM(tickers, directory= "./Risultati_GARCH_LSTM_Forecasting/",  output_file="./Tickers_file/merged_Results_Garch_LSTM.csv"):
     merged_df = None
     for ticker in tickers:
         file_path = os.path.join(directory, f"risultati_forecasting_{ticker}.csv")
@@ -125,58 +134,65 @@ merge_df_volatility.fillna(method='bfill', inplace=True)
 merge_df_volatility['Date'] = pd.to_datetime(merge_df_volatility['Date'])
 merge_df_volatility.sort_values("Date", inplace=True)
 
-blocks_df = blocks_df.merge(merge_df_volatility, on="Date", how="left")
+
+
+
+#MERGIO I FILE DI FORECAST VOLATILITà E LOG_RETURNS
+# Supponiamo di aver fuso i dati così:
+#merged_forecast_df = pd.merge(log_returns_df, merge_df_volatility, on="Date", how="inner")
+#merged_forecast_df.sort_values("Date", inplace=True)
 
 
 # -----------------------
 # 5. CALCOLO DELLA MATRICE DI COVARIANZA
 # -----------------------
-def get_covariance_matrix(row, alpha=0.1):
-    # Estrai la data dal blocco
-    block_date = row['Date']
+def get_covariance_matrix(row, log_returns_df, assets):
+    """
+    Calcola la matrice di covarianza Σ per una data forecast.
 
-    # Se la data è antecedente al primo forecast, puoi:
-    forecast_start = pd.to_datetime("2019-12-20")
-    if pd.to_datetime(block_date) < forecast_start:
-        print(f"⚠️ Dati di volatilità mancanti per la data {block_date}. Utilizzo volatilità storica come fallback.")
-        # Calcola una volatilità storica (oppure usa un valore fisso, ad es. 0.01)
-        # Qui come esempio, impostiamo un valore medio:
-        fallback_vol = 0.01  # Questo valore può essere migliorato
-        vol_vector = np.full(n_assets, fallback_vol)
-    else:
-        # Usa le volatilità predette per ciascun asset
-        vol_vector = np.array([row.get(f"{ticker}_Vol_Pred", np.nan) for ticker in assets])
+    Parametri:
+      - row: una riga del DataFrame dei forecast, che contiene le previsioni di volatilità per ogni asset.
+      - log_returns_df: DataFrame dei log_return storici, usato per calcolare la matrice di correlazione.
+      - assets: lista dei ticker (es. ['XLK', 'XLV', ...]).
 
-    # Verifica se ci sono ancora NaN e gestiscili
+    Restituisce:
+      - Sigma: la matrice di covarianza (numpy array) per la data in 'row'.
+    """
+    # Estrai il vettore delle volatilità predette
+    vol_vector = np.array([row.get(f"{ticker}_Vol_Pred", np.nan) for ticker in assets])
+
+    # Se mancano dati, usa un fallback (ad esempio, 0.01)
     if np.isnan(vol_vector).any():
-        print(f"⚠️ Dati di volatilità mancanti per la data {block_date}. Imposto una matrice di identità scalata.")
-        return np.eye(n_assets) * 0.01
+        print(f"⚠️ Dati di volatilità mancanti per la data {row['Date']}. Uso fallback = 0.01")
+        vol_vector = np.full(len(assets), 0.01)
 
-    # Calcola la matrice di correlazione
-    # Nota: qui si usa log_returns_df.corr(), ma idealmente dovresti calcolare la correlazione per il trimestre corrente
-    corr_matrix = log_returns_df.corr()
-    corr_matrix.fillna(0, inplace=True)
-
+    # Costruisci la matrice diagonale D
     D = np.diag(vol_vector)
+
+    # Calcola la matrice di correlazione. Qui usiamo i log_return storici
+    # Assicurati di usare le colonne corrispondenti agli asset
+    cols = [f"{ticker}_log_return" for ticker in assets]
+    corr_matrix = log_returns_df[cols].corr().values
+    # Sostituisci eventuali NaN con 0
+    corr_matrix = np.nan_to_num(corr_matrix, nan=0.0)
+
+    # Calcola la matrice di covarianza Σ = D * corr_matrix * D
     Sigma = D @ corr_matrix @ D
 
+    # Se la matrice è mal condizionata, aggiungi una piccola regolarizzazione
     if np.linalg.cond(Sigma) > 1e6:
         print("⚠️ Sigma mal condizionata, aggiungo regolarizzazione")
-        Sigma += np.eye(n_assets) * 0.0001
+        Sigma += np.eye(len(assets)) * 0.0001
 
     return Sigma
 
 
-blocks_df["Sigma"] = blocks_df.apply(get_covariance_matrix, axis=1)
-
-
+# ----------------------
 # -----------------------
 # 6. OTTIMIZZAZIONE CON COSTI DI TRANSAZIONE
 # -----------------------
 def optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, delta_minus=0, delta_plus=0, gamma=0.95):
-
     n = len(mu)
-
     w = cp.Variable(n)
     delta_minus_var = cp.Variable(n, nonneg=True)
     delta_plus_var = cp.Variable(n, nonneg=True)
@@ -200,35 +216,6 @@ def optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, delta_m
 
     if w.value is None:
         print(f"❌ Ottimizzazione fallita per mu={mu}, Sigma={Sigma}. Restituisco valori di default.")
-        return np.ones(n) / n, np.zeros(n), np.zeros(n)  # Ritorna pesi uguali se fallisce
+        return np.ones(n) / n, np.zeros(n), np.zeros(n)
 
     return w.value, delta_minus_var.value, delta_plus_var.value
-
-
-
-w_tilde = np.ones(n_assets) / n_assets
-
-results_with_costs = []
-
-for idx, row in blocks_df.iterrows():
-    if "Sigma" not in row or row["Sigma"] is None:
-        print(f"⚠️ Saltata ottimizzazione per la data {row['Date']} perché Sigma è mancante.")
-        continue
-
-    Sigma = row["Sigma"]
-    w_opt, delta_minus_opt, delta_plus_opt = optimize_with_transaction_costs(
-        mu, Sigma, w_tilde, c_minus, c_plus, gamma)
-
-    results_with_costs.append({
-        "Date": row["Date"],
-        **{f"{assets[i]}_weight": w_opt[i] for i in range(n_assets)},
-        "Expected_Return": mu @ w_opt,
-        "Variance": w_opt.T @ Sigma @ w_opt,
-        "Transaction_Cost": np.sum(c_minus * delta_minus_opt + c_plus * delta_plus_opt)
-    })
-
-    w_tilde = w_opt
-
-opt_results_costs_df = pd.DataFrame(results_with_costs)
-opt_results_costs_df.to_csv("optimization_results_with_costs.csv", index=False)
-print("✅ Ottimizzazione con costi completata e risultati salvati in 'optimization_results_with_costs.csv'.")
