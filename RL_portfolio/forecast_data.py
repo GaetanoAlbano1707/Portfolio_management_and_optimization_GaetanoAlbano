@@ -24,6 +24,3 @@ def directory_forecasting_results_csvs(tickers, folder_path = r"C:\Users\gaeta\D
             print(f"❌ File non trovato per {ticker}: {file_path}")
 
     return csv_files
-
-
-

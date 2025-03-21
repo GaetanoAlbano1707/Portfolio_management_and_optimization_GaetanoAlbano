@@ -43,6 +43,10 @@ def merge_log_returns(tickers, directory="./Tickers_file/", output_file="./merge
             print(f"❌ File not found: {file_path}")
 
     if merged_df is not None:
+        missing_values = merged_df.isna().sum().sum()
+        if missing_values > 0:
+            print(f"⚠️ Attenzione: Il file dei log-return contiene {missing_values} valori NaN. Verranno riempiti con il metodo forward-fill.")
+        merged_df.fillna(method='ffill', inplace=True)  # Riempiamo i NaN con il valore precedente
         merged_df.to_csv(output_file, index=False)
         print(f"✅ Merged file saved as {output_file}")
     else:
@@ -116,6 +120,11 @@ def merge_results_Garch_LSTM(tickers, directory= "./Risultati_GARCH_LSTM_Forecas
             print(f"❌ File not found: {file_path}")
 
     if merged_df is not None:
+        missing_values = merged_df.isna().sum().sum()
+        if missing_values > 0:
+            print(
+                f"⚠️ Attenzione: Il file delle previsioni di volatilità contiene {missing_values} valori NaN. Verranno riempiti con il metodo forward-fill.")
+        merged_df.fillna(method='ffill', inplace=True)  # Riempiamo i NaN con il valore precedente
         merged_df.to_csv(output_file, index=False)
         print(f"✅ Merged file saved as {output_file}")
     else:
@@ -128,14 +137,8 @@ merge_df_volatility = merge_results_Garch_LSTM(assets)
 if merge_df_volatility is None or merge_df_volatility.empty:
     raise FileNotFoundError("❌ Errore: Nessun dato di volatilità trovato. Controlla i file GARCH-LSTM.")
 
-merge_df_volatility.fillna(method='ffill', inplace=True)
-merge_df_volatility.fillna(method='bfill', inplace=True)
-
 merge_df_volatility['Date'] = pd.to_datetime(merge_df_volatility['Date'])
 merge_df_volatility.sort_values("Date", inplace=True)
-
-
-
 
 #MERGIO I FILE DI FORECAST VOLATILITà E LOG_RETURNS
 # Supponiamo di aver fuso i dati così:
@@ -173,49 +176,43 @@ def get_covariance_matrix(row, log_returns_df, assets):
     # Assicurati di usare le colonne corrispondenti agli asset
     cols = [f"{ticker}_log_return" for ticker in assets]
     corr_matrix = log_returns_df[cols].corr().values
-    # Sostituisci eventuali NaN con 0
-    corr_matrix = np.nan_to_num(corr_matrix, nan=0.0)
+    if np.isnan(corr_matrix).all():
+        print(f"⚠️ Matrice di correlazione NaN, uso matrice identità.")
+        corr_matrix = np.eye(n_assets)
 
-    # Calcola la matrice di covarianza Σ = D * corr_matrix * D
-    Sigma = D @ corr_matrix @ D
+    Sigma = D @ np.nan_to_num(corr_matrix) @ D
 
-    # Se la matrice è mal condizionata, aggiungi una piccola regolarizzazione
     if np.linalg.cond(Sigma) > 1e6:
-        print("⚠️ Sigma mal condizionata, aggiungo regolarizzazione")
+        print("⚠️ Sigma mal condizionata, aggiungo regolarizzazione.")
         Sigma += np.eye(len(assets)) * 0.0001
 
     return Sigma
-
 
 # ----------------------
 # -----------------------
 # 6. OTTIMIZZAZIONE CON COSTI DI TRANSAZIONE
 # -----------------------
 def optimize_with_transaction_costs(mu, Sigma, w_tilde, c_minus, c_plus, delta_minus=0, delta_plus=0, gamma=0.95):
+    print(f"📊 DEBUG: Mu: {mu}, Sigma shape: {Sigma.shape}, w_tilde: {w_tilde}")
+
     n = len(mu)
     w = cp.Variable(n)
     delta_minus_var = cp.Variable(n, nonneg=True)
     delta_plus_var = cp.Variable(n, nonneg=True)
 
-    linear_cost = cp.sum(cp.multiply(c_minus, delta_minus_var) + cp.multiply(c_plus, delta_plus_var))
-    quad_cost = cp.sum(cp.multiply(delta_minus, cp.square(delta_minus_var)) + cp.multiply(delta_plus, cp.square(delta_plus_var)))
-    total_transaction_cost = linear_cost + quad_cost
+    total_transaction_cost = (
+        cp.sum(cp.multiply(c_minus, delta_minus_var) + cp.multiply(c_plus, delta_plus_var))
+        + cp.sum(cp.multiply(delta_minus, cp.square(delta_minus_var)) + cp.multiply(delta_plus, cp.square(delta_plus_var)))
+    )
 
-    constraints = [
-        w == w_tilde + delta_plus_var - delta_minus_var,
-        cp.sum(w) == 1,
-        w >= 0,
-        w <= 1,
-        total_transaction_cost <= 0.01
-    ]
-
+    constraints = [w == w_tilde + delta_plus_var - delta_minus_var, cp.sum(w) == 1, w >= 0, w <= 1, total_transaction_cost <= 0.01]
     objective = cp.Minimize(0.5 * cp.quad_form(w, Sigma) - gamma * (w @ mu - total_transaction_cost))
 
     prob = cp.Problem(objective, constraints)
     result = prob.solve()
 
     if w.value is None:
-        print(f"❌ Ottimizzazione fallita per mu={mu}, Sigma={Sigma}. Restituisco valori di default.")
+        print(f"❌ Ottimizzazione fallita. Restituisco valori di default.")
         return np.ones(n) / n, np.zeros(n), np.zeros(n)
 
     return w.value, delta_minus_var.value, delta_plus_var.value
