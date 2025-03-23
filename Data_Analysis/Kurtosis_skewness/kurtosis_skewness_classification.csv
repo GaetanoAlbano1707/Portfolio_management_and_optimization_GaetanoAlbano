@@ -14,16 +14,16 @@ XLE;Adj Close;0,5348;0,9829;Platicurtica;Positivamente asimmetrica
 XLY;return;7,0874;-0,3714;Leptocurtica;Negativamente asimmetrica
 XLY;log_return;7,6906;-0,5684;Leptocurtica;Negativamente asimmetrica
 XLY;Adj Close;-0,8642;0,6088;Platicurtica;Positivamente asimmetrica
-XLI;return;8,8033;-0,1821;Leptocurtica;Negativamente asimmetrica
+XLI;return;8,8032;-0,1821;Leptocurtica;Negativamente asimmetrica
 XLI;log_return;8,8651;-0,4022;Leptocurtica;Negativamente asimmetrica
 XLI;Adj Close;-0,4416;0,7111;Platicurtica;Positivamente asimmetrica
 NVDA;return;7,9741;0,1678;Leptocurtica;Positivamente asimmetrica
-NVDA;log_return;9,2238;-0,3183;Leptocurtica;Negativamente asimmetrica
+NVDA;log_return;9,2237;-0,3183;Leptocurtica;Negativamente asimmetrica
 NVDA;Adj Close;12,0635;3,4457;Leptocurtica;Positivamente asimmetrica
-LMT;return;10,0490;-0,2910;Leptocurtica;Negativamente asimmetrica
-LMT;log_return;10,7354;-0,5594;Leptocurtica;Negativamente asimmetrica
-LMT;Adj Close;-0,9260;0,5354;Platicurtica;Positivamente asimmetrica
-WMT;return;13,2036;0,2209;Leptocurtica;Positivamente asimmetrica
+ITA;return;10,2254;-0,3016;Leptocurtica;Negativamente asimmetrica
+ITA;log_return;10,9588;-0,5709;Leptocurtica;Negativamente asimmetrica
+ITA;Adj Close;-1,0942;0,3833;Platicurtica;Positivamente asimmetrica
+WMT;return;13,2035;0,2209;Leptocurtica;Positivamente asimmetrica
 WMT;log_return;13,1242;-0,0707;Leptocurtica;Negativamente asimmetrica
 WMT;Adj Close;1,5122;1,2883;Platicurtica;Positivamente asimmetrica
 XOM;return;10,3394;0,2520;Leptocurtica;Positivamente asimmetrica
@@ -39,5 +39,5 @@ NFLX;return;20,2583;0,2840;Leptocurtica;Positivamente asimmetrica
 NFLX;log_return;25,0990;-0,8657;Leptocurtica;Negativamente asimmetrica
 NFLX;Adj Close;-0,0596;0,9743;Platicurtica;Positivamente asimmetrica
 AAPL;return;6,0206;-0,1218;Leptocurtica;Negativamente asimmetrica
-AAPL;log_return;6,6821;-0,3674;Leptocurtica;Negativamente asimmetrica
+AAPL;log_return;6,6820;-0,3674;Leptocurtica;Negativamente asimmetrica
 AAPL;Adj Close;0,1385;1,2270;Platicurtica;Positivamente asimmetrica

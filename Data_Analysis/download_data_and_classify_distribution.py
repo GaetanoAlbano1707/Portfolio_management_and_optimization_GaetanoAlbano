@@ -240,7 +240,7 @@ def plot_rolling_kurt_skew(data_frames, ticker, window=30, variable='return', sa
 
 
 # Lista dei ticker
-tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI', 'NVDA', 'LMT', 'WMT', 'XOM', 'NKE', 'AMZN', 'NFLX', 'AAPL']
+tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI', 'NVDA', 'ITA', 'WMT', 'XOM', 'NKE', 'AMZN', 'NFLX', 'AAPL']
 
 # Scarica i dati e calcola rendimenti
 data = download_and_save_ticker_data_with_dividends_and_total_return(tickers)
