@@ -30,15 +30,25 @@ def analyze_correlation(tickers, start_date='2007-01-01', end_date='2024-12-23',
     # Scarica i dati
     all_data = {}
     for ticker in tickers:
-        data = yf.download(ticker, period='max')
+        data = yf.download(ticker, period='max', auto_adjust= False )
         if data.empty:
             print(f"Errore per il ticker {ticker}: dati non disponibili.")
             continue
+
         data = data.sort_index()
         data = data.ffill().bfill()
 
-        # Filtra i dati antecedenti alla data specificata
+        # Appiattisci i nomi delle colonne (se MultiIndex)
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = [' '.join(col).strip() for col in data.columns]
+
+        # Rimuove il nome del ticker dalle colonne
+        data.columns = [col.replace(f" {ticker}", "") for col in data.columns]
+
+        # Controlla le colonne disponibili
+        print(f"Colonne disponibili per {ticker}: {data.columns}")
         data = data[(data.index >= start_date_dt) & (data.index <= end_date_dt)]
+        # Vedo solo i casi in cui c'è volume maggiore di 0
         data = data[data['Volume'] > 0]
 
         data['return'] = data['Adj Close'].pct_change() * 100
@@ -81,16 +91,25 @@ def analyze_correlation_by_period(tickers, start_date='2007-01-01', end_date='20
     # Scarica i dati
     all_data = {}
     for ticker in tickers:
-        data = yf.download(ticker, period='max')
+        data = yf.download(ticker, period='max', auto_adjust= False)
         if data.empty:
             print(f"Errore per il ticker {ticker}: dati non disponibili.")
             continue
+
         data = data.sort_index()
         data = data.ffill().bfill()
 
+        # Appiattisci i nomi delle colonne (se MultiIndex)
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = [' '.join(col).strip() for col in data.columns]
 
-        # Filtra i dati antecedenti alla data specificata
+        # Rimuove il nome del ticker dalle colonne
+        data.columns = [col.replace(f" {ticker}", "") for col in data.columns]
+
+        # Controlla le colonne disponibili
+        print(f"Colonne disponibili per {ticker}: {data.columns}")
         data = data[(data.index >= start_date_dt) & (data.index <= end_date_dt)]
+        # Vedo solo i casi in cui c'è volume maggiore di 0
         data = data[data['Volume'] > 0]
 
         data['return'] = data['Adj Close'].pct_change() * 100
@@ -228,15 +247,25 @@ def perform_pearson_test(tickers, start_date='2007-01-01', end_date='2024-12-23'
     # Scarica i dati
     all_data = {}
     for ticker in tickers:
-        data = yf.download(ticker, period='max')
+        data = yf.download(ticker, period='max', auto_adjust= False)
         if data.empty:
             print(f"Errore per il ticker {ticker}: dati non disponibili.")
             continue
+
         data = data.sort_index()
         data = data.ffill().bfill()
 
-        # Filtra i dati antecedenti alla data specificata
+        # Appiattisci i nomi delle colonne (se MultiIndex)
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = [' '.join(col).strip() for col in data.columns]
+
+        # Rimuove il nome del ticker dalle colonne
+        data.columns = [col.replace(f" {ticker}", "") for col in data.columns]
+
+        # Controlla le colonne disponibili
+        print(f"Colonne disponibili per {ticker}: {data.columns}")
         data = data[(data.index >= start_date_dt) & (data.index <= end_date_dt)]
+        # Vedo solo i casi in cui c'è volume maggiore di 0
         data = data[data['Volume'] > 0]
 
         data['return'] = data['Adj Close'].pct_change() * 100
@@ -297,13 +326,25 @@ def perform_pearson_test_periods(tickers, start_date='2007-01-01', end_date='202
     # Scarica i dati
     all_data = {}
     for ticker in tickers:
-        data = yf.download(ticker, period='max')
+        data = yf.download(ticker, period='max', auto_adjust= False)
         if data.empty:
             print(f"Errore per il ticker {ticker}: dati non disponibili.")
             continue
+
         data = data.sort_index()
         data = data.ffill().bfill()
+
+        # Appiattisci i nomi delle colonne (se MultiIndex)
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = [' '.join(col).strip() for col in data.columns]
+
+        # Rimuove il nome del ticker dalle colonne
+        data.columns = [col.replace(f" {ticker}", "") for col in data.columns]
+
+        # Controlla le colonne disponibili
+        print(f"Colonne disponibili per {ticker}: {data.columns}")
         data = data[(data.index >= start_date_dt) & (data.index <= end_date_dt)]
+        # Vedo solo i casi in cui c'è volume maggiore di 0
         data = data[data['Volume'] > 0]
 
         data['return'] = data['Adj Close'].pct_change() * 100
@@ -395,13 +436,25 @@ def plot_correlation_evolution(tickers, start_date='2007-01-01', end_date='2024-
     # Scarica i dati per ciascun ticker
     all_data = {}
     for ticker in tickers:
-        data = yf.download(ticker, period='max')
+        data = yf.download(ticker, period='max', auto_adjust= False)
         if data.empty:
             print(f"Errore per il ticker {ticker}: dati non disponibili.")
             continue
+
         data = data.sort_index()
-        data = data.ffill().bfill()  # Riempie i dati mancanti
+        data = data.ffill().bfill()
+
+        # Appiattisci i nomi delle colonne (se MultiIndex)
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = [' '.join(col).strip() for col in data.columns]
+
+        # Rimuove il nome del ticker dalle colonne
+        data.columns = [col.replace(f" {ticker}", "") for col in data.columns]
+
+        # Controlla le colonne disponibili
+        print(f"Colonne disponibili per {ticker}: {data.columns}")
         data = data[(data.index >= start_date_dt) & (data.index <= end_date_dt)]
+        # Vedo solo i casi in cui c'è volume maggiore di 0
         data = data[data['Volume'] > 0]
         data['return'] = data['Adj Close'].pct_change() * 100
         all_data[ticker] = data['return']
@@ -502,7 +555,7 @@ def plot_correlation_evolution(tickers, start_date='2007-01-01', end_date='2024-
 
 
 # Lista dei ticker
-tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI', 'NVDA', 'LMT', 'WMT', 'XOM', 'NKE', 'AMZN', 'NFLX', 'AAPL']
+tickers = ['XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI', 'NVDA', 'ITA', 'WMT', 'XOM', 'NKE', 'AMZN', 'NFLX', 'AAPL']
 
 # Correlazione generale
 analyze_correlation(tickers)
