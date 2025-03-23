@@ -1,5 +1,5 @@
 % Directory contenente i file CSV
-dataDir = './Data_Analisis/Tickers_file';
+dataDir = './Data_Analysis/Tickers_file';
 
 % Lista dei file CSV di interesse
 fileList = { ...

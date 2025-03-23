@@ -22,7 +22,7 @@ def analyze_data_periodically_month(tickers, start_date='01/01/2007', end_date='
     for ticker in tickers:
         try:
             # Scarica i dati storici
-            data = yf.download(ticker, period='max')
+            data = yf.download(ticker, period='max', auto_adjust= False)
             if data.empty:
                 print(f"Errore per il ticker {ticker}: dati non disponibili.")
                 continue
@@ -30,8 +30,18 @@ def analyze_data_periodically_month(tickers, start_date='01/01/2007', end_date='
             data = data.sort_index()
             data = data.ffill().bfill()
 
-            # Filtra i dati antecedenti alla data specificata
+            # Appiattisci i nomi delle colonne (se MultiIndex)
+            if isinstance(data.columns, pd.MultiIndex):
+                data.columns = [' '.join(col).strip() for col in data.columns]
+
+            # Rimuove il nome del ticker dalle colonne
+            data.columns = [col.replace(f" {ticker}", "") for col in data.columns]
+
+            # Controlla le colonne disponibili
+            print(f"Colonne disponibili per {ticker}: {data.columns}")
             data = data[(data.index >= start_date_dt) & (data.index <= end_date_dt)]
+            # Vedo solo i casi in cui c'è volume maggiore di 0
+            data = data[data['Volume'] > 0]
 
             data['return'] = data['Adj Close'].pct_change() * 100
             # Arrotonda a 3 cifre decimali
@@ -151,7 +161,7 @@ def analyze_data_periodically_year(tickers, start_date='01/01/2007', end_date='2
     for ticker in tickers:
         try:
             # Scarica i dati storici
-            data = yf.download(ticker, period='max')
+            data = yf.download(ticker, period='max', auto_adjust=False)
             if data.empty:
                 print(f"Errore per il ticker {ticker}: dati non disponibili.")
                 continue
@@ -159,8 +169,17 @@ def analyze_data_periodically_year(tickers, start_date='01/01/2007', end_date='2
             data = data.sort_index()
             data = data.ffill().bfill()
 
-            # Filtra i dati antecedenti alla data specificata
+            # Appiattisci i nomi delle colonne (se MultiIndex)
+            if isinstance(data.columns, pd.MultiIndex):
+                data.columns = [' '.join(col).strip() for col in data.columns]
+
+            # Rimuove il nome del ticker dalle colonne
+            data.columns = [col.replace(f" {ticker}", "") for col in data.columns]
+
+            # Controlla le colonne disponibili
+            print(f"Colonne disponibili per {ticker}: {data.columns}")
             data = data[(data.index >= start_date_dt) & (data.index <= end_date_dt)]
+            # Vedo solo i casi in cui c'è volume maggiore di 0
             data = data[data['Volume'] > 0]
 
             data['return'] = data['Adj Close'].pct_change()
@@ -267,7 +286,7 @@ def analyze_data_periodically_year(tickers, start_date='01/01/2007', end_date='2
 # Lista dei ticker
 tickers = [
     'XLK', 'XLV', 'XLF', 'XLE', 'XLY', 'XLI',
-    'NVDA', 'LMT', 'WMT', 'XOM', 'NKE', 'AMZN', 'NFLX', 'AAPL'
+    'NVDA', 'ITA', 'WMT', 'XOM', 'NKE', 'AMZN', 'NFLX', 'AAPL'
 ]
 
 # Esegui l'analisi
