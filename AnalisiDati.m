@@ -42,7 +42,7 @@ for i = 1:length(filteredFilenames)
     data = readtable(filepath);
 
     % Controllo dell'esistenza di tutte le colonne richieste
-    requiredVars = {'xReturn', 'AdjClose', 'Open', 'Volume'};
+    requiredVars = {'xReturn', 'AdjClose', 'Open', 'Volume', 'log_return'};
     for rv = requiredVars
         if ~ismember(rv{1}, data.Properties.VariableNames)
             error('La colonna "%s" non è presente in %s', rv{1}, filteredFilenames{i});
@@ -54,6 +54,7 @@ for i = 1:length(filteredFilenames)
     adjcloses  = data.AdjClose;
     opens      = data.Open;
     volumes    = data.Volume;
+    log_returns = data.log_return;
     
     % Ricavo il nome del file senza estensione
     [~, name, ~] = fileparts(filteredFilenames{i});
@@ -65,12 +66,14 @@ for i = 1:length(filteredFilenames)
     closeVarName   = ['AdjClose_'  name];
     openVarName    = ['Open_'      name];
     volumeVarName  = ['Volume_'    name];
+    log_returnVarName = ['log_return_' name];
     
     % Assegno le variabili nel workspace "base"
     assignin('base', returnVarName,  returns);
     assignin('base', closeVarName,  adjcloses);
     assignin('base', openVarName,   opens);
     assignin('base', volumeVarName, volumes);
+    assignin('base', log_returnVarName, log_returns);
 end
 
 disp('I dati sono stati caricati con successo nel workspace.');
