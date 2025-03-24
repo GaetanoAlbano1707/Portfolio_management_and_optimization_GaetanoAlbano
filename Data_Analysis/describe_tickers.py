@@ -45,7 +45,7 @@ desc = desc[cols_order]
 
 # 11) Salva o stampa il risultato
 desc.to_csv(
-    "Descrizione_statistiche_assets.csv",
+    "Statistiche_descrizione_assets.csv",
     float_format="%.4f",
     sep=';',         # Usa ; come separatore di colonna
     decimal=',',     # Usa la virgola come separatore decimale
