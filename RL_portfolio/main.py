@@ -13,6 +13,8 @@ from cost_optimization import grid_search_transaction_costs
 from rebalance_comparison import compare_rebalancing_periods
 from logger import ExperimentLogger
 from utils import set_seed, load_config
+from grid_search_plot import plot_grid_search_results
+
 
 # === Configurazione ===
 config = load_config("config.json")
@@ -150,6 +152,7 @@ if config.get("optimize_costs", False):
             "data_normalization": "by_previous_time",
         }
     )
+plot_grid_search_results("results/grid_search_results.json")
 
 # === Rebalance Comparison (opzionale) ===
 if config.get("compare_rebalancing", False):
