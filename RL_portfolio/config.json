@@ -7,10 +7,21 @@
   "learning_rate": 0.001,
   "model_type": "EIIE",
   "seed": 42,
+
   "costs": {
     "c_plus": 0.001,
     "c_minus": 0.001,
     "delta_plus": 0.01,
     "delta_minus": 0.01
-  }
+  },
+
+  "optimize_costs": true,
+  "grid_costs": {
+    "c_plus": [0.0005, 0.001, 0.002],
+    "c_minus": [0.0005, 0.001, 0.002],
+    "delta_plus": [0.005, 0.01, 0.02],
+    "delta_minus": [0.005, 0.01, 0.02]
+  },
+
+  "compare_rebalancing": true
 }
