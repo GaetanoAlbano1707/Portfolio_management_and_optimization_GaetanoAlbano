@@ -1,0 +1,16 @@
+{
+  "initial_amount": 100000,
+  "episodes": 100,
+  "batch_size": 64,
+  "reward_scaling": 1.0,
+  "rebalancing_period": 75,
+  "learning_rate": 0.001,
+  "model_type": "EIIE",
+  "seed": 42,
+  "costs": {
+    "c_plus": 0.001,
+    "c_minus": 0.001,
+    "delta_plus": 0.01,
+    "delta_minus": 0.01
+  }
+}

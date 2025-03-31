@@ -1,6 +1,6 @@
 import pandas as pd
 from stable_baselines3 import PPO
-from tickers_portfolio_env import TickersPortfolioEnv
+from portfolio_optimization_env import TickersPortfolioEnv
 from config import Config
 
 
