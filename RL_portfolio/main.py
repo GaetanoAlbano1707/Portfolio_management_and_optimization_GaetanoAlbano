@@ -3,8 +3,13 @@ import torch
 import pandas as pd
 import numpy as np
 from torch.optim import Adam
+from pathlib import Path
 
-from data_loader import load_volatility_data, load_expected_returns
+from data_loader import (
+    load_volatility_data,
+    load_expected_returns,
+    compute_covariance_matrix
+)
 from models import EIIE, GPM, EI3
 from policy_gradient import PolicyGradient
 from portfolio_optimization_env import PortfolioOptimizationEnv
@@ -14,24 +19,43 @@ from rebalance_comparison import compare_rebalancing_periods
 from logger import ExperimentLogger
 from utils import set_seed, load_config
 from grid_search_plot import plot_grid_search_results
+from correlation_utils import calculate_rolling_correlation
+from plot_utils import plot_covariance_evolution
 
 
-# === Configurazione ===
+# === Config ===
 config = load_config("config.json")
 set_seed(config["seed"])
-os.makedirs("results/models", exist_ok=True)
 
-# === Dati ===
-df = pd.read_csv("your_main_dataframe.csv")  # Rinomina al tuo CSV
+# === Directory risultati
+result_dir = Path("results/test" if config.get("test_mode", False) else "results/experiment")
+result_dir.mkdir(parents=True, exist_ok=True)
+(result_dir / "models").mkdir(parents=True, exist_ok=True)
+
+# === Dati principali ===
+df = pd.read_csv("./TEST/main_data_fake.csv", parse_dates=["date"])
+features = ["adj_close", "close", "high", "low", "open", "volume", "return", "log_return"]
 tickers = df["tic"].unique().tolist()
 
-# === Costi ===
-cost_c_plus = [config["costs"]["c_plus"]] * len(tickers)
-cost_c_minus = [config["costs"]["c_minus"]] * len(tickers)
-cost_delta_plus = [config["costs"]["delta_plus"]] * len(tickers)
-cost_delta_minus = [config["costs"]["delta_minus"]] * len(tickers)
+# === Volatilità e rendimenti attesi
+vol_df = load_volatility_data("./TEST/test_results_*.csv")
+expected_returns = load_expected_returns("./TEST/expected_returns_FAKE.csv")
+corr_matrices = calculate_rolling_correlation(df, window=63)
+# === Covarianza dinamica
+cov_matrices = compute_covariance_matrix(vol_df)
+plot_covariance_evolution(cov_matrices, save_dir=result_dir)
 
-# === Modello ===
+
+
+# === Costi transazione
+n_assets_plus_cash = len(tickers) + 1
+
+cost_c_plus = [config["costs"]["c_plus"]] * n_assets_plus_cash
+cost_c_minus = [config["costs"]["c_minus"]] * n_assets_plus_cash
+cost_delta_plus = [config["costs"]["delta_plus"]] * n_assets_plus_cash
+cost_delta_minus = [config["costs"]["delta_minus"]] * n_assets_plus_cash
+
+# === Costruzione modello
 model_type = config["model_type"]
 num_assets = len(tickers)
 time_window = 50
@@ -50,7 +74,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model = model.to(device)
 optimizer = Adam(model.parameters(), lr=config["learning_rate"])
 
-# === Buffer e Memory Dummy ===
+# === Dummy buffer/memory
 class DummyBuffer:
     def __init__(self): self._data = []
     def add(self, x): self._data.append(x)
@@ -58,14 +82,24 @@ class DummyBuffer:
     def __len__(self): return len(self._data)
 
 class DummyMemory:
-    def __init__(self, n): self._a = np.array([1] + [0]*n, dtype=np.float32)
-    def retrieve(self): return self._a
-    def add(self, a): self._a = a
+    def __init__(self, n_assets):
+        self._n_assets = n_assets
+        self._a = self._random_action()
+
+    def _random_action(self):
+        a = np.random.rand(self._n_assets + 1)
+        return a / np.sum(a)
+
+    def retrieve(self):
+        return self._a
+
+    def add(self, a):
+        self._a = a
 
 buffer = DummyBuffer()
 memory = DummyMemory(num_assets)
 
-# === Trainer RL ===
+# === Trainer RL
 trainer = PolicyGradient(
     env_class=PortfolioOptimizationEnv,
     policy_net=model,
@@ -82,11 +116,11 @@ trainer = PolicyGradient(
     device=device
 )
 
-# === Logging ===
-logger = ExperimentLogger()
+# === Logging
+logger = ExperimentLogger(log_dir=result_dir)
 logger.log_config(config)
 
-# === Training ===
+# === Train
 trainer.train(
     df=df,
     initial_amount=config["initial_amount"],
@@ -100,15 +134,15 @@ trainer.train(
     data_normalization="by_previous_time",
 )
 
-# === Salvataggio Modello ===
-torch.save(model.state_dict(), f"results/models/{model_type.lower()}_final.pt")
-print(f"💾 Modello salvato!")
+# === Salvataggio modello
+model_path = result_dir / "models" / f"{model_type.lower()}_final.pt"
+torch.save(model.state_dict(), model_path)
+print(f"💾 Modello salvato in: {model_path}")
 
-# === Ricarica per valutazione (opzionale) ===
-model.load_state_dict(torch.load(f"results/models/{model_type.lower()}_final.pt"))
+# === Valutazione
+model.load_state_dict(torch.load(model_path))
 model.eval()
 
-# === Valutazione ===
 metrics = evaluate_policy(
     policy_net=model,
     env_class=PortfolioOptimizationEnv,
@@ -132,7 +166,7 @@ metrics = evaluate_policy(
 logger.log_metrics(metrics)
 logger.save()
 
-# === Grid Search (opzionale) ===
+# === Grid search
 if config.get("optimize_costs", False):
     best_combo, _ = grid_search_transaction_costs(
         policy_net=model,
@@ -150,13 +184,13 @@ if config.get("optimize_costs", False):
             "tics_in_portfolio": "all",
             "time_window": time_window,
             "data_normalization": "by_previous_time",
-        }
+        },
+        save_path=result_dir / "grid_search_results.json"
     )
-plot_grid_search_results("results/grid_search_results.json")
+    plot_grid_search_results(result_dir / "grid_search_results.json")
 
-# === Rebalance Comparison (opzionale) ===
+# === Confronto ribilanciamento
 if config.get("compare_rebalancing", False):
-    from rebalance_comparison import compare_rebalancing_periods
     periods = [21, 42, 63, 75, 100]
     compare_rebalancing_periods(model, df, periods,
         initial_amount=config["initial_amount"],
@@ -173,4 +207,5 @@ if config.get("compare_rebalancing", False):
         tics_in_portfolio="all",
         time_window=time_window,
         data_normalization="by_previous_time",
+        cwd=str(result_dir)
     )

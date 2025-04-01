@@ -1,6 +1,7 @@
 {
   "initial_amount": 100000,
   "episodes": 100,
+  "test_mode": true,
   "batch_size": 64,
   "reward_scaling": 1.0,
   "rebalancing_period": 75,

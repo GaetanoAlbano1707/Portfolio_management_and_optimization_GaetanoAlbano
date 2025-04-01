@@ -65,20 +65,23 @@ class PortfolioOptimizationEnv(gym.Env):
             reward_scaling: float = 1,
             comission_fee_model: str = "trf",
             comission_fee_pct: float = 0,
-            features: list[str] = ["close", "high", "low"],
+            features: list[str] = ["adj_close", "close", "high", "low", "open", "volume", "return", "log_return"],
             valuation_feature: str = "close",
             time_column: str = "date",
             time_format: str | None = None,
             tic_column: str = "tic",
             tics_in_portfolio: str | list[str] = "all",
             time_window: int = 50,
+            rebalancing_period: int = 75,  # ← AGGIUNTO QUI
             print_metrics: bool = True,
             plot_graphs: bool = True,
             cwd: str = "./",
-            cost_c_plus: list[float] | None = None,
-            cost_c_minus: list[float] | None = None,
-            cost_delta_plus: list[float] | None = None,
-            cost_delta_minus: list[float] | None = None,
+            expected_returns: pd.Series = None,
+            cov_matrices: dict = None,
+            cost_c_plus: list[float] = None,
+            cost_c_minus: list[float] = None,
+            cost_delta_plus: list[float] = None,
+            cost_delta_minus: list[float] = None,
     ) -> PortfolioOptimizationEnv:
 
         """Initializes environment's instance.
@@ -146,7 +149,9 @@ class PortfolioOptimizationEnv(gym.Env):
         self._cost_c_minus = cost_c_minus
         self._cost_delta_plus = cost_delta_plus
         self._cost_delta_minus = cost_delta_minus
-
+        self._expected_returns = expected_returns
+        self._cov_matrices = cov_matrices
+        self._rebalancing_period = rebalancing_period
         # results file
         self._results_file = self._cwd / "results" / "rl"
         self._results_file.mkdir(parents=True, exist_ok=True)
@@ -206,15 +211,27 @@ class PortfolioOptimizationEnv(gym.Env):
 
     def _calculate_quadratic_cost(self, w_new, w_old):
         cost = 0.0
-        for i in range(len(w_new)):
+        n_assets = len(w_new)
+
+        # Controlli robusti sulla lunghezza dei costi
+        if self._cost_c_plus and len(self._cost_c_plus) != n_assets:
+            raise ValueError("Length of cost_c_plus does not match number of assets.")
+        if self._cost_c_minus and len(self._cost_c_minus) != n_assets:
+            raise ValueError("Length of cost_c_minus does not match number of assets.")
+        if self._cost_delta_plus and len(self._cost_delta_plus) != n_assets:
+            raise ValueError("Length of cost_delta_plus does not match number of assets.")
+        if self._cost_delta_minus and len(self._cost_delta_minus) != n_assets:
+            raise ValueError("Length of cost_delta_minus does not match number of assets.")
+
+        for i in range(n_assets):
             delta = w_new[i] - w_old[i]
             if delta > 0:
-                c = self._cost_c_plus[i] if self._cost_c_plus is not None else 0.0
-                d = self._cost_delta_plus[i] if self._cost_delta_plus is not None else 0.0
+                c = self._cost_c_plus[i] if self._cost_c_plus else 0.0
+                d = self._cost_delta_plus[i] if self._cost_delta_plus else 0.0
                 cost += c * delta + d * delta ** 2
             elif delta < 0:
-                c = self._cost_c_minus[i] if self._cost_c_minus is not None else 0.0
-                d = self._cost_delta_minus[i] if self._cost_delta_minus is not None else 0.0
+                c = self._cost_c_minus[i] if self._cost_c_minus else 0.0
+                d = self._cost_delta_minus[i] if self._cost_delta_minus else 0.0
                 cost += -c * delta + d * delta ** 2
         return cost
 
@@ -354,10 +371,22 @@ class PortfolioOptimizationEnv(gym.Env):
             # Costi di transazione
             if self._cost_c_plus is not None:
                 transaction_cost = self._calculate_quadratic_cost(weights, last_weights)
-                self.reward -= transaction_cost  # penalizza reward
+                self._reward -= transaction_cost  # penalizza reward
                 self._info["transaction_cost"] = transaction_cost
 
-        return self._observation, self._reward, self._terminal, False, self._info
+            # Expected return logging
+            if self._expected_returns is not None:
+                current_date = self._info["end_time"]
+                exp_return = self._expected_returns.get(current_date, 0.0)
+                self._info["expected_return"] = exp_return
+
+            # === LOGGING PER DEBUG ===
+            print(f"[STEP {self._time_index}] Action: {weights.round(3)}")
+            print(f"          Reward: {self._reward:.4f}")
+            if "transaction_cost" in self._info:
+                print(f"          Cost: {self._info['transaction_cost']:.6f}")
+
+            return self._observation, self._reward, self._terminal, False, self._info
 
     def render(self, mode: str = "human") -> np.ndarray | dict[str, np.ndarray]:
         """Renders the environment.
@@ -722,7 +751,11 @@ class PortfolioOptimizationEnv(gym.Env):
             "end_time_index": time_index,
             "data": self._data,
             "price_variation": self._price_variation,
+
         }
+        if self._cov_matrices is not None:
+            cov = self._cov_matrices.get(end_time)
+            info["covariance"] = cov
         return self._generate_observation(self._normalize_state(state)), info
 
     def _apply_wvm_fee(

@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-
+import numpy as np  # 🔁 Assicurati che sia importato
 
 class ExperimentLogger:
     def __init__(self, log_dir="results/experiments"):
@@ -19,6 +19,11 @@ class ExperimentLogger:
         self.data[label] = values
 
     def save(self):
+        def convert(obj):
+            if isinstance(obj, np.generic):  # converte numpy float, int, ecc.
+                return obj.item()
+            raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+
         with open(self.log_file, "w") as f:
-            json.dump(self.data, f, indent=4)
+            json.dump(self.data, f, indent=4, default=convert)
         print(f"📁 Log salvato in: {self.log_file}")

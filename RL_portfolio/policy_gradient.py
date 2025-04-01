@@ -76,8 +76,19 @@ class PolicyGradient:
                     action = self.policy_net(observation, last_action)
 
                 if t % self.rebalancing_period == 0:
-                    next_state, reward, done, _, info = env.step(action.squeeze().cpu().numpy())
-                    self.memory.add(action.squeeze().cpu().numpy())
+                    action_np = action.squeeze().cpu().numpy()
+                    next_state, reward, done, _, info = env.step(action_np)
+
+                    # Log dettagliato ad ogni azione
+                    print(f"[EP {episode + 1} | STEP {t}]")
+                    print(f"  ↪️ Azione: {np.round(action_np, 3)}")
+                    print(f"  💰 Reward step: {reward:.6f}")
+                    if "transaction_cost" in info:
+                        print(f"  💸 Costo transazione: {info['transaction_cost']:.6f}")
+                    if "expected_return" in info:
+                        print(f"  🔮 Rendimento atteso: {info['expected_return']:.6f}")
+
+                    self.memory.add(action_np)
                     self.buffer.add((observation, action, reward))
 
                     total_reward += reward
