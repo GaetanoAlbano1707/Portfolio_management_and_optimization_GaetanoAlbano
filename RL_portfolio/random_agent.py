@@ -15,8 +15,6 @@ class PolicyGradient:
         reward_scaling: float = 1.0,
         verbose: bool = True,
         rebalancing_period: int = 75,
-        exploration_noise: float = 0.05,
-        diversification_lambda: float = 0.1,
         cost_c_plus=None,
         cost_c_minus=None,
         cost_delta_plus=None,
@@ -32,8 +30,6 @@ class PolicyGradient:
         self.reward_scaling = reward_scaling
         self.verbose = verbose
         self.rebalancing_period = rebalancing_period
-        self.exploration_noise = exploration_noise
-        self.diversification_lambda = diversification_lambda
         self.cost_c_plus = cost_c_plus
         self.cost_c_minus = cost_c_minus
         self.cost_delta_plus = cost_delta_plus
@@ -78,10 +74,6 @@ class PolicyGradient:
 
                 with torch.no_grad():
                     action = self.policy_net(observation, last_action)
-                    if self.exploration_noise > 0:
-                        noise = torch.normal(mean=0.0, std=self.exploration_noise, size=action.shape).to(self.device)
-                        action = torch.clamp(action + noise, 0, 1)
-                        action = action / torch.sum(action)  # rinormalizza
 
                 if t % self.rebalancing_period == 0:
                     action_np = action.squeeze().cpu().numpy()
@@ -132,8 +124,7 @@ class PolicyGradient:
         rewards = torch.tensor(rewards).float().to(self.device)
 
         log_probs = torch.log(torch.sum(self.policy_net(observations, actions) * actions, dim=1))
-        diversification_penalty = torch.mean(torch.var(actions, dim=1))
-        loss = -torch.mean(log_probs * rewards) + self.diversification_lambda * diversification_penalty
+        loss = -torch.mean(log_probs * rewards)
 
         self.optimizer.zero_grad()
         loss.backward()

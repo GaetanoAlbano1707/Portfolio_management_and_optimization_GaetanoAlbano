@@ -1,6 +1,6 @@
 {
   "initial_amount": 100000,
-  "episodes": 100,
+  "episodes": 300,
   "test_mode": true,
   "batch_size": 64,
   "reward_scaling": 1.0,
@@ -10,19 +10,22 @@
   "seed": 42,
 
   "costs": {
-    "c_plus": 0.001,
-    "c_minus": 0.001,
-    "delta_plus": 0.01,
-    "delta_minus": 0.01
+    "c_plus": 0.01,
+    "c_minus": 0.01,
+    "delta_plus": 0.02,
+    "delta_minus": 0.02
   },
 
   "optimize_costs": true,
   "grid_costs": {
-    "c_plus": [0.0005, 0.001, 0.002],
-    "c_minus": [0.0005, 0.001, 0.002],
-    "delta_plus": [0.005, 0.01, 0.02],
-    "delta_minus": [0.005, 0.01, 0.02]
+  "c_plus": [0.005, 0.01, 0.02],
+  "c_minus": [0.005, 0.01, 0.02],
+  "delta_plus": [0.01, 0.02, 0.03],
+  "delta_minus": [0.01, 0.02, 0.03]
   },
 
-  "compare_rebalancing": true
+  "compare_rebalancing": true,
+  "exploration_noise": 0.05,
+  "diversification_lambda": 0.1
 }
+

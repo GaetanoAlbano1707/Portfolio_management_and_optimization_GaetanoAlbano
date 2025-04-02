@@ -385,7 +385,8 @@ class PortfolioOptimizationEnv(gym.Env):
             print(f"          Reward: {self._reward:.4f}")
             if "transaction_cost" in self._info:
                 print(f"          Cost: {self._info['transaction_cost']:.6f}")
-
+            delta_value = self._asset_memory["final"][-1] - self._asset_memory["final"][-2]
+            print(f"          Δ Portfolio Value: {delta_value:.2f}")
             return self._observation, self._reward, self._terminal, False, self._info
 
     def render(self, mode: str = "human") -> np.ndarray | dict[str, np.ndarray]:
@@ -505,14 +506,12 @@ class PortfolioOptimizationEnv(gym.Env):
         """Executes terminal routine (prints and plots). This function also adds a
         "metrics" key to "_info" attribute with the episode's simulation metrics.
         """
-        metrics_df = pd.DataFrame(
-            {
-                "date": self._date_memory,
-                "returns": self._portfolio_return_memory,
-                "rewards": self._portfolio_reward_memory,
-                "portfolio_values": self._asset_memory["final"],
-            }
-        )
+        metrics_df = pd.DataFrame({
+            "date": pd.to_datetime(self._date_memory),
+            "returns": self._portfolio_return_memory,
+            "rewards": self._portfolio_reward_memory,
+            "portfolio_values": self._asset_memory["final"],
+        })
         metrics_df.set_index("date", inplace=True)
 
         self._info["metrics"] = {
@@ -520,6 +519,7 @@ class PortfolioOptimizationEnv(gym.Env):
             "fapv": self._portfolio_value / self._asset_memory["final"][0],
             "mdd": qs.stats.max_drawdown(metrics_df["portfolio_values"]),
             "sharpe": qs.stats.sharpe(metrics_df["returns"], annualize=False),
+            "reward_std": np.std(self._portfolio_reward_memory),
         }
 
         if self._plot_graphs:

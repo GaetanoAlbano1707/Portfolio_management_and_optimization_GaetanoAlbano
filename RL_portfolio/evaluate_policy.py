@@ -12,7 +12,7 @@ def evaluate_policy(
     initial_amount: float = 100000,
     device: str = "cpu",
     plot_results: bool = True,
-    results_path: str = "./results/evaluation",
+    results_path: str = "./results/test",
     cost_c_plus=None,
     cost_c_minus=None,
     cost_delta_plus=None,
@@ -20,22 +20,6 @@ def evaluate_policy(
     reward_scaling: float = 1.0,
     **env_kwargs,
 ) -> dict:
-    """
-    Valuta un modello di policy su un dataset specificato in un ambiente RL.
-
-    Args:
-        policy_net: Modello PyTorch della policy.
-        env_class: Classe dell'ambiente (es. PortfolioOptimizationEnv).
-        df: Dataframe con i dati del test set.
-        initial_amount: Capitale iniziale.
-        device: Dispositivo su cui gira la rete.
-        plot_results: Se True, salva grafici di valore portafoglio e reward.
-        results_path: Percorso dove salvare i risultati.
-        cost_*: Parametri per i costi di transazione.
-
-    Returns:
-        metrics (dict): dizionario con metriche finali dell’episodio.
-    """
     env = env_class(
         df=df,
         initial_amount=initial_amount,
@@ -57,9 +41,7 @@ def evaluate_policy(
     rewards = []
 
     while not done:
-        observation = torch.tensor(
-            state["state"] if isinstance(state, dict) else state
-        ).unsqueeze(0).to(device)
+        observation = torch.tensor(state["state"] if isinstance(state, dict) else state).unsqueeze(0).to(device)
 
         with torch.no_grad():
             action = policy_net(observation, last_action)
@@ -69,39 +51,45 @@ def evaluate_policy(
         portfolio_values.append(env._portfolio_value)
         rewards.append(reward)
 
-    # === Plot risultati ===
-    results_dir = Path(results_path)
-    results_dir.mkdir(parents=True, exist_ok=True)
-
-    plt.figure(figsize=(10, 4))
-    plt.plot(portfolio_values, label="Portfolio Value")
-    plt.title("Portfolio Value During Evaluation")
-    plt.xlabel("Step")
-    plt.ylabel("Value")
-    plt.grid(True)
-    plt.savefig(results_dir / "portfolio_value.png")
-    plt.close()
-
-    plt.figure(figsize=(10, 4))
-    plt.plot(rewards, label="Reward")
-    plt.title("Reward per Step")
-    plt.xlabel("Step")
-    plt.ylabel("Reward")
-    plt.grid(True)
-    plt.savefig(results_dir / "reward.png")
-    plt.close()
+    # === Calcolo metriche ===
+    reward_std = np.std(rewards)
+    reward_mean = np.mean(rewards)
+    sharpe = reward_mean / reward_std if reward_std != 0 else 0
 
     metrics = {
+        "agent_type": "policy",
         "final_value": portfolio_values[-1],
         "fapv": portfolio_values[-1] / portfolio_values[0],
-        "mean_reward": np.mean(rewards),
+        "reward_std": reward_std,
+        "mean_reward": reward_mean,
+        "sharpe": sharpe,
         "max_drawdown": max(1 - np.array(portfolio_values) / np.maximum.accumulate(portfolio_values)),
     }
 
-    pd.DataFrame({
-        "Portfolio Value": portfolio_values,
-        "Reward": rewards
-    }).to_csv(results_dir / "evaluation_results.csv", index=False)
+    # === Save CSV con metriche
+    results_dir = Path(results_path)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame([metrics]).to_csv(results_dir / "evaluation_results.csv", index=False)
+
+    # === Plot
+    if plot_results:
+        plt.figure(figsize=(10, 4))
+        plt.plot(portfolio_values, label="Portfolio Value")
+        plt.title("Portfolio Value During Evaluation")
+        plt.xlabel("Step")
+        plt.ylabel("Value")
+        plt.grid(True)
+        plt.savefig(results_dir / "portfolio_value.png")
+        plt.close()
+
+        plt.figure(figsize=(10, 4))
+        plt.plot(rewards, label="Reward")
+        plt.title("Reward per Step")
+        plt.xlabel("Step")
+        plt.ylabel("Reward")
+        plt.grid(True)
+        plt.savefig(results_dir / "reward.png")
+        plt.close()
 
     print(f"✅ Valutazione completata. FAPV: {metrics['fapv']:.4f}, Final Value: {metrics['final_value']:.2f}")
     return metrics
