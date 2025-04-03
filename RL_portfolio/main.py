@@ -13,7 +13,7 @@ from data_loader import (
 from models import EIIE, GPM, EI3
 from policy_gradient import PolicyGradient
 from portfolio_optimization_env import PortfolioOptimizationEnv
-from evaluate_policy import evaluate_policy
+from policy_evaluator import evaluate_policy
 from cost_optimization import grid_search_transaction_costs
 from rebalance_comparison import compare_rebalancing_periods
 from logger import ExperimentLogger
@@ -146,16 +146,16 @@ model.load_state_dict(torch.load(model_path))
 model.eval()
 
 metrics = evaluate_policy(
-    policy_net=model,
-    env_class=PortfolioOptimizationEnv,
-    df=df,
-    initial_amount=config["initial_amount"],
+    model,  # policy_net
+    PortfolioOptimizationEnv,  # env_class
+    df,  # df
     device=device,
     cost_c_plus=cost_c_plus,
     cost_c_minus=cost_c_minus,
     cost_delta_plus=cost_delta_plus,
     cost_delta_minus=cost_delta_minus,
     reward_scaling=config["reward_scaling"],
+    results_path=str(result_dir),
     features=["close", "high", "low"],
     valuation_feature="close",
     time_column="date",
@@ -164,6 +164,8 @@ metrics = evaluate_policy(
     time_window=time_window,
     data_normalization="by_previous_time",
 )
+
+
 
 logger.log_metrics(metrics)
 logger.save()

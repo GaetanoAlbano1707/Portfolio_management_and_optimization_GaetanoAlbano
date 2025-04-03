@@ -5,7 +5,7 @@ from pathlib import Path
 from portfolio_optimization_env import PortfolioOptimizationEnv
 
 
-def evaluate_random_agent(
+def evaluate_policy(
     df: pd.DataFrame,
     initial_amount: float = 100000,
     reward_scaling: float = 1.0,
@@ -24,29 +24,15 @@ def evaluate_random_agent(
     state, _ = env.reset()
     done = False
 
-    portfolio_values, rewards, dates, actions = [], [], [], []
-    log_data = []
+    portfolio_values = []
+    rewards = []
 
-    step = 0
     while not done:
         action = np.random.dirichlet(np.ones(env.portfolio_size + 1))
         state, reward, done, _, info = env.step(action)
 
         portfolio_values.append(env._portfolio_value)
         rewards.append(reward)
-        dates.append(info["end_time"])
-        actions.append(action)
-
-        if step % 63 == 0:
-            log_data.append({
-                "step": step,
-                "date": info["end_time"],
-                "portfolio_value": env._portfolio_value,
-                "reward": reward,
-                **{f"alloc_{i}": w for i, w in enumerate(action)}
-            })
-
-        step += 1
 
     reward_std = np.std(rewards)
     reward_mean = np.mean(rewards)
@@ -64,16 +50,26 @@ def evaluate_random_agent(
 
     results_dir = Path(results_path)
     results_dir.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame([metrics]).to_csv(results_dir / "evaluation_results_random.csv", index=False)
-    pd.DataFrame(log_data).to_csv(results_dir / "evaluation_log_random.csv", index=False)
+    random_csv_path = results_dir / "evaluation_results_random.csv"
+    pd.DataFrame([metrics]).to_csv(random_csv_path, index=False)
 
-    plt.figure(figsize=(10, 4))
-    plt.plot(portfolio_values)
-    plt.title("Random Agent Portfolio Value")
-    plt.grid(True)
-    for l in range(0, len(portfolio_values), 63):
-        plt.axvline(x=l, color='red', linestyle='--', alpha=0.3)
-    plt.savefig(results_dir / "portfolio_value_random.png")
-    plt.close()
+    print(f"📁 Risultati random salvati in: {random_csv_path}")
 
     print(f"✅ Random agent valutato. FAPV: {metrics['fapv']:.4f}, Final Value: {metrics['final_value']:.2f}")
+
+if __name__ == "__main__":
+    import pandas as pd
+
+    df = pd.read_csv("./TEST/main_data_fake.csv", parse_dates=["date"])
+    evaluate_policy(
+        df=df,
+        initial_amount=100000,
+        reward_scaling=1.0,
+        features=["close", "high", "low"],
+        valuation_feature="close",
+        time_column="date",
+        tic_column="tic",
+        tics_in_portfolio="all",
+        time_window=50,
+        data_normalization="by_previous_time",
+    )

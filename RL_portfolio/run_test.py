@@ -17,4 +17,8 @@ subprocess.run(["python", "evaluate_random_agent.py"], check=True)
 print("\n📈 Analisi comparativa dei risultati...")
 subprocess.run(["python", "compare_agents.py"], check=True)
 
+# === Step 5: Analisi dettagliata trimestrale
+print("\n📋 Analisi dettagliata trimestrale del log...")
+subprocess.run(["python", "analyze_evaluation_log.py"], check=True)
+
 print("\n✅ Tutto completato. Controlla la cartella 'results/test/' per i risultati.")

@@ -1,4 +1,4 @@
-from evaluate_policy import evaluate_policy
+from policy_evaluator import evaluate_policy
 from portfolio_optimization_env import PortfolioOptimizationEnv
 import matplotlib.pyplot as plt
 
