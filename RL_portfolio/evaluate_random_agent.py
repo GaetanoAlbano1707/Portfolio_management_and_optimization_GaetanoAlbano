@@ -64,8 +64,11 @@ def evaluate_random_agent(
 
     results_dir = Path(results_path)
     results_dir.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame([metrics]).to_csv(results_dir / "evaluation_results_random.csv", index=False)
-    pd.DataFrame(log_data).to_csv(results_dir / "evaluation_log_random.csv", index=False)
+    # Compatibilità per compare_agents.py
+    # Salvataggio standard
+    random_path = results_dir / "evaluation_results_random.csv"
+    print(f"📁 File salvato in: {random_path.resolve()}")
+    pd.DataFrame([metrics]).to_csv(random_path, index=False)
 
     plt.figure(figsize=(10, 4))
     plt.plot(portfolio_values)
@@ -77,3 +80,19 @@ def evaluate_random_agent(
     plt.close()
 
     print(f"✅ Random agent valutato. FAPV: {metrics['fapv']:.4f}, Final Value: {metrics['final_value']:.2f}")
+
+if __name__ == "__main__":
+
+    df = pd.read_csv("./TEST/main_data_fake.csv", parse_dates=["date"])
+    evaluate_random_agent(
+        df=df,
+        initial_amount=100000,
+        reward_scaling=1.0,
+        features=["close", "high", "low"],
+        valuation_feature="close",
+        time_column="date",
+        tic_column="tic",
+        tics_in_portfolio="all",
+        time_window=50,
+        data_normalization="by_previous_time"
+    )

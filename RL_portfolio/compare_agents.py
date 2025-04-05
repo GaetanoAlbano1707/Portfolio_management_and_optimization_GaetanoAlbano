@@ -4,8 +4,8 @@ from pathlib import Path
 
 # === Percorsi ===
 base_path = Path("results/test")
-rl_path = base_path / "evaluation_results.csv"
-random_path = base_path / "evaluation_results_random.csv"
+rl_path = base_path / "evaluation_results_policy.csv"    # <- già corretto
+random_path = base_path / "evaluation_results_random.csv"  # <- già corretto
 
 # === Controllo esistenza file ===
 if not rl_path.exists() or not random_path.exists():

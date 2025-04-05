@@ -5,7 +5,7 @@ from pathlib import Path
 from portfolio_optimization_env import PortfolioOptimizationEnv
 
 
-def evaluate_policy(
+def evaluate_random_agent(
     df: pd.DataFrame,
     initial_amount: float = 100000,
     reward_scaling: float = 1.0,
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     import pandas as pd
 
     df = pd.read_csv("./TEST/main_data_fake.csv", parse_dates=["date"])
-    evaluate_policy(
+    evaluate_random_agent(
         df=df,
         initial_amount=100000,
         reward_scaling=1.0,

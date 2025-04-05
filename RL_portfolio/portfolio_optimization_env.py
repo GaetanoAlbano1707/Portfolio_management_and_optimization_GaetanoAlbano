@@ -82,6 +82,7 @@ class PortfolioOptimizationEnv(gym.Env):
             cost_c_minus: list[float] = None,
             cost_delta_plus: list[float] = None,
             cost_delta_minus: list[float] = None,
+
     ) -> PortfolioOptimizationEnv:
 
         """Initializes environment's instance.

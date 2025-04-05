@@ -1,24 +1,28 @@
 import os
 import subprocess
 
+def run_step(description, script_name):
+    print(f"\n🛠️ {description}...")
+    try:
+        subprocess.run(["python", script_name], check=True)
+        print(f"✅ Completato: {script_name}")
+    except subprocess.CalledProcessError:
+        print(f"❌ Errore durante l'esecuzione di {script_name}")
+        exit(1)
+
 # === Step 1: Generazione dei dati fittizi ===
-print("📊 Generazione dei dati fittizi...")
-subprocess.run(["python", "generate_fake_data_for_test.py"], check=True)
+run_step("Generazione dei dati fittizi", "generate_fake_data_for_test.py")
 
-# === Step 2: Esecuzione del training e valutazione ===
-print("\n🚀 Avvio esperimento principale...")
-subprocess.run(["python", "main.py"], check=True)
+# === Step 2: Esecuzione del training e valutazione policy ===
+run_step("Avvio esperimento principale (training + valutazione policy)", "main.py")
 
-# === Step 3: Confronto con agente random ===
-print("\n🎲 Confronto con agente random...")
-subprocess.run(["python", "evaluate_random_agent.py"], check=True)
+# === Step 3: Valutazione agente random ===
+run_step("Valutazione agente random", "evaluate_random_agent.py")
 
-# === Step 4: Analisi comparativa
-print("\n📈 Analisi comparativa dei risultati...")
-subprocess.run(["python", "compare_agents.py"], check=True)
+# === Step 4: Confronto tra agenti ===
+run_step("Analisi comparativa tra agenti", "compare_agents.py")
 
-# === Step 5: Analisi dettagliata trimestrale
-print("\n📋 Analisi dettagliata trimestrale del log...")
-subprocess.run(["python", "analyze_evaluation_log.py"], check=True)
+# === Step 5: Analisi trimestrale del log della policy ===
+run_step("Analisi dettagliata trimestrale del log della policy", "analyze_evaluation_log.py")
 
-print("\n✅ Tutto completato. Controlla la cartella 'results/test/' per i risultati.")
+print("\n🎉 Tutto completato. Controlla la cartella 'results/test/' per tutti i risultati!")

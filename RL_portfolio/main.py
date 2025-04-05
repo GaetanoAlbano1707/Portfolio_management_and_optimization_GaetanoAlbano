@@ -12,8 +12,8 @@ from data_loader import (
 )
 from models import EIIE, GPM, EI3
 from policy_gradient import PolicyGradient
+from evaluate_policy import evaluate_policy
 from portfolio_optimization_env import PortfolioOptimizationEnv
-from policy_evaluator import evaluate_policy
 from cost_optimization import grid_search_transaction_costs
 from rebalance_comparison import compare_rebalancing_periods
 from logger import ExperimentLogger
@@ -144,11 +144,22 @@ print(f"💾 Modello salvato in: {model_path}")
 # === Valutazione
 model.load_state_dict(torch.load(model_path))
 model.eval()
+# === Valutazione
+env_kwargs = {
+    "features": ["close", "high", "low"],
+    "valuation_feature": "close",
+    "time_column": "date",
+    "tic_column": "tic",
+    "tics_in_portfolio": "all",
+    "time_window": time_window,
+    "data_normalization": "by_previous_time",
+}
 
 metrics = evaluate_policy(
-    model,  # policy_net
-    PortfolioOptimizationEnv,  # env_class
-    df,  # df
+    model,
+    PortfolioOptimizationEnv,
+    df,
+    initial_amount=config["initial_amount"],
     device=device,
     cost_c_plus=cost_c_plus,
     cost_c_minus=cost_c_minus,
@@ -156,16 +167,8 @@ metrics = evaluate_policy(
     cost_delta_minus=cost_delta_minus,
     reward_scaling=config["reward_scaling"],
     results_path=str(result_dir),
-    features=["close", "high", "low"],
-    valuation_feature="close",
-    time_column="date",
-    tic_column="tic",
-    tics_in_portfolio="all",
-    time_window=time_window,
-    data_normalization="by_previous_time",
+    **env_kwargs
 )
-
-
 
 logger.log_metrics(metrics)
 logger.save()

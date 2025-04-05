@@ -1,8 +1,8 @@
 import itertools
 import json
-from policy_evaluator import evaluate_policy
+from policy_evaluator import evaluate_random_agent
 from portfolio_optimization_env import PortfolioOptimizationEnv
-
+from evaluate_policy import evaluate_policy  # Assicurati che questo sia in cima al file
 
 def grid_search_transaction_costs(
     policy_net,
@@ -56,10 +56,10 @@ def grid_search_transaction_costs(
             policy_net=policy_net,
             env_class=PortfolioOptimizationEnv,
             df=df,
-            initial_amount=initial_amount,
             device=device,
+            initial_amount=initial_amount,
             reward_scaling=reward_scaling,
-            **cost_args,
+            results_path="./results/test/grid_search",
             **env_kwargs
         )
 
