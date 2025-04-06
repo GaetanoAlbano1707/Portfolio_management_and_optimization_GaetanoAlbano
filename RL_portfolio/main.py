@@ -21,6 +21,7 @@ from utils import set_seed, load_config
 from grid_search_plot import plot_grid_search_results
 from correlation_utils import calculate_rolling_correlation
 from plot_utils import plot_covariance_evolution
+from efficient_frontier import calculate_efficient_frontier
 
 
 # === Config ===
@@ -216,3 +217,9 @@ if config.get("compare_rebalancing", False):
         data_normalization="by_previous_time",
         cwd=str(result_dir)
     )
+
+calculate_efficient_frontier(
+    "./TEST/main_data_real.csv",
+    config_path="config.json",
+    save_path=str(result_dir / "efficient_frontier.png")
+)

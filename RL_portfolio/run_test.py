@@ -25,4 +25,9 @@ run_step("Analisi comparativa tra agenti", "compare_agents.py")
 # === Step 5: Analisi trimestrale del log della policy ===
 run_step("Analisi dettagliata trimestrale del log della policy", "analyze_evaluation_log.py")
 
+# Step finale: Generazione della Frontiera Efficiente
+print("\n📈 Generazione della Frontiera Efficiente...")
+subprocess.run(["python", "efficient_frontier.py"], check=True)
+print("✅ Frontiera Efficiente generata e salvata.")
+
 print("\n🎉 Tutto completato. Controlla la cartella 'results/test/' per tutti i risultati!")
