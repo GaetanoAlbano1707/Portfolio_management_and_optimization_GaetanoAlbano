@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 
-def download_and_save_ticker(tickers, start_date='01/01/2007', end_date='06/01/2020', save_dir='./Tickers_file/'):
+def download_and_save_ticker(tickers, start_date='01/01/2007', end_date='20/12/2024', save_dir='./Tickers_file/'):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 

@@ -33,13 +33,13 @@ result_dir.mkdir(parents=True, exist_ok=True)
 (result_dir / "models").mkdir(parents=True, exist_ok=True)
 
 # === Dati principali ===
-df = pd.read_csv("./TEST/main_data_fake.csv", parse_dates=["date"])
+df = pd.read_csv("./TEST/main_data_real.csv", parse_dates=["date"])
 features = ["adj_close", "close", "high", "low", "open", "volume", "return", "log_return"]
 tickers = df["tic"].unique().tolist()
 
 # === Volatilità e rendimenti attesi
-vol_df = load_volatility_data("./TEST/test_results_*.csv")
-expected_returns = load_expected_returns("./TEST/expected_returns_FAKE.csv")
+vol_df = load_volatility_data("./TEST/forecasting_data_combined.csv")
+expected_returns = load_expected_returns("./TEST/expected_returns_real.csv")
 corr_matrices = calculate_rolling_correlation(df, window=63)
 # === Covarianza dinamica
 cov_matrices = compute_covariance_matrix(vol_df)
