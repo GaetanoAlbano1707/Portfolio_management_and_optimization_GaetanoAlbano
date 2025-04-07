@@ -10,22 +10,22 @@ def run_step(description, script_name):
         print(f"❌ Errore durante l'esecuzione di {script_name}")
         exit(1)
 
-# === Step 1: Generazione dei dati fittizi ===
-run_step("Generazione dei dati fittizi", "generate_fake_data_for_test.py")
-
-# === Step 2: Esecuzione del training e valutazione policy ===
+# === Step 1: Esecuzione del training e valutazione policy ===
 run_step("Avvio esperimento principale (training + valutazione policy)", "main.py")
 
-# === Step 3: Valutazione agente random ===
-run_step("Valutazione agente random", "evaluate_random_agent.py")
-
-# === Step 4: Confronto tra agenti ===
-run_step("Analisi comparativa tra agenti", "compare_agents.py")
-
-# === Step 5: Analisi trimestrale del log della policy ===
+# === Step 2: Analisi trimestrale del log della policy ===
 run_step("Analisi dettagliata trimestrale del log della policy", "analyze_evaluation_log.py")
 
-# Step finale: Generazione della Frontiera Efficiente
+# === Step 3: Confronto con strategie passive ===
+run_step("Confronto con strategie passive", "passive_strategies_comparison.py")
+
+# === Step 4: Test di robustezza con volatilità variabile ===
+run_step("Test di robustezza", "robustness_tests.py")
+
+# === Step 5: Ablation test per confrontare configurazioni semplificate ===
+run_step("Ablation test", "ablation_test.py")
+
+# === Step 6: Generazione della Frontiera Efficiente ===
 print("\n📈 Generazione della Frontiera Efficiente...")
 subprocess.run(["python", "efficient_frontier.py"], check=True)
 print("✅ Frontiera Efficiente generata e salvata.")

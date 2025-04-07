@@ -3,22 +3,15 @@ import pandas as pd
 import numpy as np
 from glob import glob
 
-def load_volatility_data(vol_path_pattern: str) -> pd.DataFrame:
+def load_volatility_data(file_path: str) -> pd.DataFrame:
     """
-    Carica i file CSV contenenti le volatilità previste (GARCH+LSTM) e li combina in un DataFrame.
+    Carica un singolo file CSV contenente tutte le volatilità previste combinate.
+    Il file deve avere le colonne: Date, LSTM_Vol, tic
     """
-    all_vols = []
-
-    for file in glob(vol_path_pattern):
-        ticker = os.path.basename(file).split('_')[-1].split('.')[0]
-        df = pd.read_csv(file, parse_dates=['Date'])
-        df = df[['Date', 'LSTM_Vol']].copy()
-        df['Ticker'] = ticker
-        all_vols.append(df)
-
-    combined = pd.concat(all_vols)
-    combined = combined.set_index(['Date', 'Ticker']).sort_index()
-    return combined
+    df = pd.read_csv(file_path, parse_dates=["Date"])
+    df = df[["Date", "LSTM_Vol", "tic"]]
+    df = df.set_index(["Date", "tic"]).sort_index()
+    return df
 
 
 def compute_covariance_matrix(vol_df: pd.DataFrame, corr_matrix: pd.DataFrame = None) -> dict:
@@ -28,8 +21,11 @@ def compute_covariance_matrix(vol_df: pd.DataFrame, corr_matrix: pd.DataFrame = 
     cov_matrices = {}
 
     for date, group in vol_df.groupby(level=0):
-        vols = group['LSTM_Vol'].values
+        vols = group["LSTM_Vol"].values
         tickers = group.index.get_level_values(1)
+
+        print(f"[DEBUG] Covariance Matrix @ {date.strftime('%Y-%m-%d')}: Index = {group.index}")
+        print(f"[DEBUG] Tickers estratti: {tickers.tolist()}")
 
         sigma = np.diag(vols ** 2)
         if corr_matrix is None:

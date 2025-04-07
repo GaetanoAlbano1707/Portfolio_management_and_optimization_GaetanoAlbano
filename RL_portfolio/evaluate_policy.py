@@ -11,6 +11,7 @@ def evaluate_policy(
     initial_amount,
     device,
     results_path="./results/test",
+    sharpe_window=63,
     **env_kwargs
 ):
     env = env_class(df=df, initial_amount=initial_amount, print_metrics=False, plot_graphs=False, **env_kwargs)
@@ -54,11 +55,7 @@ def evaluate_policy(
     results_dir = Path(results_path)
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    # Salvataggio standard
-    policy_path = results_dir / "evaluation_results_policy.csv"
-    pd.DataFrame([metrics]).to_csv(policy_path, index=False)
-
-    # Salvataggio log intermedio
+    # === Log
     log_df = pd.DataFrame({
         "date": pd.to_datetime(dates),
         "portfolio_value": portfolio_values,
@@ -66,7 +63,10 @@ def evaluate_policy(
     })
     log_df.to_csv(results_dir / "evaluation_log_policy.csv", index=False)
 
-    # Grafici
+    # === Salvataggio metriche
+    pd.DataFrame([metrics]).to_csv(results_dir / "evaluation_results_policy.csv", index=False)
+
+    # === Grafici
     plt.figure(figsize=(10, 4))
     plt.plot(dates, portfolio_values, label="Portfolio Value")
     plt.title("Portfolio Value Over Time")
@@ -87,6 +87,22 @@ def evaluate_policy(
     plt.xticks(rotation=45)
     plt.tight_layout()
     plt.savefig(results_dir / "reward_policy.png")
+    plt.close()
+
+    # === Rolling Sharpe Ratio
+    log_df["rolling_mean"] = log_df["reward"].rolling(window=sharpe_window).mean()
+    log_df["rolling_std"] = log_df["reward"].rolling(window=sharpe_window).std()
+    log_df["sharpe_ratio"] = log_df["rolling_mean"] / log_df["rolling_std"]
+
+    plt.figure(figsize=(12, 5))
+    plt.plot(log_df["date"], log_df["sharpe_ratio"], label=f"Sharpe Ratio Rolling ({sharpe_window} giorni)")
+    plt.axhline(0, color="gray", linestyle="--", linewidth=0.8)
+    plt.title("Rolling Sharpe Ratio")
+    plt.xlabel("Date")
+    plt.ylabel("Sharpe Ratio")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(results_dir / "rolling_sharpe_ratio.png")
     plt.close()
 
     print(f"📁 Risultati policy salvati in: {results_dir / 'evaluation_results_policy.csv'}")

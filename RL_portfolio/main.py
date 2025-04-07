@@ -128,8 +128,8 @@ trainer.train(
     df=df,
     initial_amount=config["initial_amount"],
     episodes=config["episodes"],
-    features=["close", "high", "low"],
-    valuation_feature="close",
+    features=["adj_close", "high", "low"],
+    valuation_feature="adj_close",
     time_column="date",
     tic_column="tic",
     tics_in_portfolio="all",
@@ -147,8 +147,8 @@ model.load_state_dict(torch.load(model_path))
 model.eval()
 # === Valutazione
 env_kwargs = {
-    "features": ["close", "high", "low"],
-    "valuation_feature": "close",
+    "features": ["adj_close", "high", "low"],
+    "valuation_feature": "adj_close",
     "time_column": "date",
     "tic_column": "tic",
     "tics_in_portfolio": "all",
@@ -185,8 +185,8 @@ if config.get("optimize_costs", False):
         model_name=model_type,
         reward_scaling=config["reward_scaling"],
         env_kwargs={
-            "features": ["close", "high", "low"],
-            "valuation_feature": "close",
+            "features": ["adj_close", "high", "low"],
+            "valuation_feature": "adj_close",
             "time_column": "date",
             "tic_column": "tic",
             "tics_in_portfolio": "all",
@@ -208,8 +208,8 @@ if config.get("compare_rebalancing", False):
         cost_delta_plus=cost_delta_plus,
         cost_delta_minus=cost_delta_minus,
         reward_scaling=config["reward_scaling"],
-        features=["close", "high", "low"],
-        valuation_feature="close",
+        features=["adj_close", "high", "low"],
+        valuation_feature="adj_close",
         time_column="date",
         tic_column="tic",
         tics_in_portfolio="all",

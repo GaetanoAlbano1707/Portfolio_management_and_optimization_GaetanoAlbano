@@ -26,26 +26,31 @@ def compute_buy_and_hold(df, tickers, valuation_col="close", initial_amount=1000
     portfolio_values = (last_prices * holdings).sum(axis=1)
     return portfolio_values
 
-
-def plot_covariance_evolution(cov_matrices: dict, save_dir="results/test/"):
+def plot_covariance_evolution(cov_matrices: dict, save_dir="results/test/", mode="default", rebalancing_period=75):
     """
     Plotta alcune heatmap dell'evoluzione di Σ(t) nel tempo.
-
-    Args:
-        cov_matrices: dict con chiave date, valore DataFrame matrice di covarianza
-        save_dir: cartella dove salvare le immagini
+    Se mode='rebalance', seleziona solo le date di ribilanciamento.
     """
     os.makedirs(save_dir, exist_ok=True)
 
-    # Seleziona 5 date equidistanti
-    dates = list(sorted(cov_matrices.keys()))
-    sample_dates = [dates[i] for i in np.linspace(0, len(dates) - 1, 5, dtype=int)]
+    dates = sorted(cov_matrices.keys())
+    if mode == "rebalance":
+        sample_dates = dates[::rebalancing_period]
+    else:
+        sample_dates = [dates[i] for i in np.linspace(0, len(dates) - 1, 5, dtype=int)]
 
     for date in sample_dates:
         cov = cov_matrices[date]
         plt.figure(figsize=(6, 5))
-        sns.heatmap(cov, annot=False, cmap="coolwarm", square=True, fmt=".2f")
+        # Stampa di debug per vedere quali ticker sono inclusi
+        print(f"[DEBUG] Covariance Matrix @ {date.strftime('%Y-%m-%d')}: Tickers = {list(cov.index)}")
+
+        # Assicurati che gli indici e colonne siano stringhe leggibili (evita 'combined')
+        cov.index = [str(t) for t in cov.index]
+        cov.columns = [str(t) for t in cov.columns]
+
+        sns.heatmap(cov, annot=False, cmap="coolwarm", square=True, fmt=".2f", xticklabels=True, yticklabels=True)
         plt.title(f"Covariance Matrix - {date.strftime('%Y-%m-%d')}")
         plt.tight_layout()
-        plt.savefig(f"{save_dir}/cov_matrix_{date.strftime('%Y%m%d')}.png")
+        plt.savefig(os.path.join(save_dir, f"cov_matrix_{date.strftime('%Y%m%d')}.png"))
         plt.close()

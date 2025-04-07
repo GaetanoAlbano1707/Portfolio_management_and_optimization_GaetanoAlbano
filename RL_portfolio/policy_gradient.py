@@ -40,12 +40,12 @@ class PolicyGradient:
         self.cost_delta_minus = cost_delta_minus
 
     def train(
-        self,
-        df: np.ndarray,
-        initial_amount: float,
-        episodes: int = 100,
-        callback=None,
-        **env_kwargs,
+            self,
+            df: np.ndarray,
+            initial_amount: float,
+            episodes: int = 100,
+            callback=None,
+            **env_kwargs,
     ) -> None:
         for episode in range(episodes):
             if self.verbose:
@@ -76,16 +76,32 @@ class PolicyGradient:
                     state["state"] if isinstance(state, dict) else state
                 ).unsqueeze(0).to(self.device)
 
+                # 🔍 Check for NaNs in observation
+                if torch.isnan(observation).any():
+                    print(f"[DEBUG] 🛑 NaN nell'observation a STEP {t}. Observation: {observation}")
+                    break
+
                 with torch.no_grad():
                     action = self.policy_net(observation, last_action)
                     if self.exploration_noise > 0:
                         noise = torch.normal(mean=0.0, std=self.exploration_noise, size=action.shape).to(self.device)
                         action = torch.clamp(action + noise, 0, 1)
-                        action = action / torch.sum(action)  # rinormalizza
+                        action = action / torch.sum(action)
+
+                # 🔍 Check for NaNs in action
+                if torch.isnan(action).any():
+                    print(f"[DEBUG] 🛑 NaN nell'azione calcolata a STEP {t}. Action: {action}")
+                    break
 
                 if t % self.rebalancing_period == 0:
                     action_np = action.squeeze().cpu().numpy()
                     next_state, reward, done, _, info = env.step(action_np)
+
+                    # 🔍 Check for NaNs in reward or portfolio value
+                    if np.isnan(reward) or np.isnan(env._portfolio_value):
+                        print(
+                            f"[DEBUG] 🛑 Reward o Portfolio Value NaN a STEP {t}. Reward: {reward}, Portfolio: {env._portfolio_value}")
+                        break
 
                     if self.verbose:
                         print(f"[EP {episode + 1} | STEP {t}]")
