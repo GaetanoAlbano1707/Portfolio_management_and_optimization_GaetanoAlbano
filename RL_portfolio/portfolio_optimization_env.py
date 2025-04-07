@@ -363,7 +363,25 @@ class PortfolioOptimizationEnv(gym.Env):
 
             # Define portfolio return
             self._reward = portfolio_reward
-            self._reward = self._reward * self._reward_scaling
+            lambda_risk = getattr(self, "_diversification_lambda", 0.1)  # se non lo trova, fallback a 0.1
+            cov_matrix = self._info.get("covariance", None)
+            risk_penalty = 0.0
+            if cov_matrix is not None:
+                risk_penalty = float(np.dot(weights[1:], np.dot(cov_matrix.values, weights[1:])))
+                self._info["risk_penalty"] = risk_penalty
+
+            # Costi di transazione
+            transaction_cost = 0.0
+            if self._cost_c_plus is not None:
+                transaction_cost = self._calculate_quadratic_cost(weights, last_weights)
+                self._info["transaction_cost"] = transaction_cost
+
+            # Define portfolio reward with risk penalty and cost
+            self._reward = (
+                    self._reward_scaling * portfolio_reward
+                    - transaction_cost
+                    - lambda_risk * risk_penalty
+            )
 
             # Since time index has changed, check if new state is terminal.
             self._terminal = self._time_index >= len(self._sorted_times) - 1
