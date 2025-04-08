@@ -2,14 +2,11 @@ import os
 import torch
 import pandas as pd
 import numpy as np
+import pickle
 from torch.optim import Adam
 from pathlib import Path
 
-from data_loader import (
-    load_volatility_data,
-    load_expected_returns,
-    compute_covariance_matrix
-)
+from data_loader import load_expected_returns
 from models import EIIE, GPM, EI3
 from policy_gradient import PolicyGradient
 from evaluate_policy import evaluate_policy
@@ -19,10 +16,8 @@ from rebalance_comparison import compare_rebalancing_periods
 from logger import ExperimentLogger
 from utils import set_seed, load_config
 from grid_search_plot import plot_grid_search_results
-from correlation_utils import calculate_rolling_correlation
 from plot_utils import plot_covariance_evolution
 from efficient_frontier import calculate_efficient_frontier
-
 
 # === Config ===
 config = load_config("config.json")
@@ -38,19 +33,17 @@ df = pd.read_csv("./TEST/main_data_real.csv", parse_dates=["date"])
 features = ["adj_close", "close", "high", "low", "open", "volume", "return", "log_return"]
 tickers = df["tic"].unique().tolist()
 
-# === Volatilità e rendimenti attesi
-vol_df = load_volatility_data("./TEST/forecasting_data_combined.csv")
+# === Covarianza e rendimenti attesi
+with open("./TEST/cov_matrices.pkl", "rb") as f:
+    cov_matrices = pickle.load(f)
+
 expected_returns = load_expected_returns("./TEST/expected_returns_real.csv")
-corr_matrices = calculate_rolling_correlation(df, window=63)
-# === Covarianza dinamica
-cov_matrices = compute_covariance_matrix(vol_df)
+
+# === Plot evoluzione covarianza (opzionale)
 plot_covariance_evolution(cov_matrices, save_dir=result_dir)
-
-
 
 # === Costi transazione
 n_assets_plus_cash = len(tickers) + 1
-
 cost_c_plus = [config["costs"]["c_plus"]] * n_assets_plus_cash
 cost_c_minus = [config["costs"]["c_minus"]] * n_assets_plus_cash
 cost_delta_plus = [config["costs"]["delta_plus"]] * n_assets_plus_cash
@@ -135,6 +128,8 @@ trainer.train(
     tics_in_portfolio="all",
     time_window=time_window,
     data_normalization="by_previous_time",
+    expected_returns=expected_returns,
+    cov_matrices=cov_matrices
 )
 
 # === Salvataggio modello
@@ -145,7 +140,7 @@ print(f"💾 Modello salvato in: {model_path}")
 # === Valutazione
 model.load_state_dict(torch.load(model_path))
 model.eval()
-# === Valutazione
+
 env_kwargs = {
     "features": ["adj_close", "high", "low"],
     "valuation_feature": "adj_close",
@@ -154,6 +149,8 @@ env_kwargs = {
     "tics_in_portfolio": "all",
     "time_window": time_window,
     "data_normalization": "by_previous_time",
+    "expected_returns": expected_returns,
+    "cov_matrices": cov_matrices
 }
 
 metrics = evaluate_policy(
@@ -184,15 +181,7 @@ if config.get("optimize_costs", False):
         device=device,
         model_name=model_type,
         reward_scaling=config["reward_scaling"],
-        env_kwargs={
-            "features": ["adj_close", "high", "low"],
-            "valuation_feature": "adj_close",
-            "time_column": "date",
-            "tic_column": "tic",
-            "tics_in_portfolio": "all",
-            "time_window": time_window,
-            "data_normalization": "by_previous_time",
-        },
+        env_kwargs=env_kwargs,
         save_path=result_dir / "grid_search_results.json"
     )
     plot_grid_search_results(result_dir / "grid_search_results.json")
@@ -200,7 +189,8 @@ if config.get("optimize_costs", False):
 # === Confronto ribilanciamento
 if config.get("compare_rebalancing", False):
     periods = [21, 42, 63, 75, 100]
-    compare_rebalancing_periods(model, df, periods,
+    compare_rebalancing_periods(
+        model, df, periods,
         initial_amount=config["initial_amount"],
         device=device,
         cost_c_plus=cost_c_plus,
@@ -208,16 +198,11 @@ if config.get("compare_rebalancing", False):
         cost_delta_plus=cost_delta_plus,
         cost_delta_minus=cost_delta_minus,
         reward_scaling=config["reward_scaling"],
-        features=["adj_close", "high", "low"],
-        valuation_feature="adj_close",
-        time_column="date",
-        tic_column="tic",
-        tics_in_portfolio="all",
-        time_window=time_window,
-        data_normalization="by_previous_time",
-        cwd=str(result_dir)
+        cwd=str(result_dir),
+        **env_kwargs
     )
 
+# === Frontiera efficiente
 calculate_efficient_frontier(
     "./TEST/main_data_real.csv",
     config_path="config.json",

@@ -2,7 +2,6 @@ import optuna
 import torch
 import pandas as pd
 from pathlib import Path
-
 from models import EIIE, GPM, EI3
 from policy_gradient import PolicyGradient
 from evaluate_policy import evaluate_policy
@@ -16,15 +15,15 @@ def objective(trial):
     noise = trial.suggest_float("exploration_noise", 0.0, 0.2)
     model_type = trial.suggest_categorical("model_type", ["EIIE", "EI3", "GPM"])
 
-    # === Carica i dati
+    # === Dati
     df = pd.read_csv("./TEST/main_data_real.csv", parse_dates=["date"])
-    features = ["close", "high", "low"]
+    features = ["adj_close", "high", "low"]
     tickers = df["tic"].unique().tolist()
-
     num_assets = len(tickers)
     time_window = 50
     num_features = len(features)
 
+    # === Modello
     if model_type == "EIIE":
         model = EIIE(num_assets, time_window, num_features)
     elif model_type == "GPM":
@@ -36,6 +35,7 @@ def objective(trial):
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
+    # === Dummy buffer e memoria
     buffer = []
     memory = lambda: [1.0] + [0.0] * num_assets
 
@@ -55,14 +55,15 @@ def objective(trial):
         cost_delta_plus=[0.02] * (num_assets + 1),
         cost_delta_minus=[0.02] * (num_assets + 1),
         device=device,
+        verbose=False
     )
 
     trainer.train(
         df=df,
         initial_amount=100000,
-        episodes=5,
+        episodes=3,
         features=features,
-        valuation_feature="close",
+        valuation_feature="adj_close",
         time_column="date",
         tic_column="tic",
         tics_in_portfolio="all",
@@ -82,7 +83,7 @@ def objective(trial):
         cost_delta_plus=[0.02] * (num_assets + 1),
         cost_delta_minus=[0.02] * (num_assets + 1),
         features=features,
-        valuation_feature="close",
+        valuation_feature="adj_close",
         time_column="date",
         tic_column="tic",
         tics_in_portfolio="all",
@@ -90,9 +91,15 @@ def objective(trial):
         data_normalization="by_previous_time",
     )
 
-    return -metrics["max_drawdown"]  # o metrics["sharpe"]
+    # Obiettivo di ottimizzazione (puoi cambiarlo in 'sharpe' o 'fapv')
+    return -metrics["sharpe"]
 
 if __name__ == "__main__":
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=20)
-    print("Best hyperparameters:", study.best_params)
+    study.optimize(objective, n_trials=30)
+
+    # Salvataggio risultati
+    df_trials = study.trials_dataframe()
+    df_trials.to_csv("results/optuna_tuning_results.csv", index=False)
+
+    print("✅ Best hyperparameters:", study.best_params)

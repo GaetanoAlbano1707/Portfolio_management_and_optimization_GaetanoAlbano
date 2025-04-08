@@ -1,6 +1,7 @@
 from __future__ import annotations
 import torch
 import numpy as np
+import pandas as pd
 
 class PolicyGradient:
     def __init__(
@@ -110,7 +111,10 @@ class PolicyGradient:
                         if "transaction_cost" in info:
                             print(f"  💸 Costo transazione: {info['transaction_cost']:.6f}")
                         if "expected_return" in info:
-                            print(f"  🔮 Rendimento atteso: {info['expected_return']:.6f}")
+                            expected = info["expected_return"]
+                            if isinstance(expected, pd.Series):
+                                expected = expected.iloc[0]  # oppure expected.values[0]
+                            print(f"  🔮 Rendimento atteso: {expected:.6f}")
                         if "portfolio_values" in info.get("metrics", {}):
                             values = info["metrics"]["portfolio_values"]
                             print(f"  📈 Valore portafoglio: {values[-1]}")

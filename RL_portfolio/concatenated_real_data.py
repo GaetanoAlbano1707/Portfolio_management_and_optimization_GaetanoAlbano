@@ -7,7 +7,7 @@ start_date = "2018-07-02"
 end_date = "2024-12-20"
 data_dir = "Tickers_file"
 output_file = "TEST/main_data_real.csv"
-
+output_file2= "PPO/main_data_real.csv"
 all_data = []
 
 for file in glob.glob(os.path.join(data_dir, "*_data.csv")):
@@ -45,3 +45,9 @@ combined_df.sort_values(by=["tic", "date"], inplace=True)
 os.makedirs("TEST", exist_ok=True)
 combined_df.to_csv(output_file, index=False)
 print(f"✅ Creato: {output_file}")
+
+
+# Salva
+os.makedirs("PPO", exist_ok=True)
+combined_df.to_csv(output_file2, index=False)
+print(f"✅ Creato: {output_file2}")
