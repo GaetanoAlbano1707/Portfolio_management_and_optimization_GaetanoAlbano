@@ -12,5 +12,8 @@ def load_data(main_data_path, mu_path, sigma_path):
 
     return df_prices, df_mu, df_sigma
 
-def get_rebalancing_dates(dates, freq='Q'):
-    return pd.Series(dates).drop_duplicates().resample(freq).first().dropna().tolist()
+def get_rebalancing_dates(dates, freq='Q-DEC'):
+    date_series = pd.Series(dates)
+    date_series = pd.to_datetime(date_series)
+    date_series.index = date_series
+    return date_series.resample(freq).first().dropna().tolist()

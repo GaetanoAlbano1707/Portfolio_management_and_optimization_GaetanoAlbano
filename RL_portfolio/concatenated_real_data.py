@@ -3,7 +3,7 @@ import glob
 import os
 
 # === Parametri ===
-start_date = "2018-07-02"
+start_date = "2020-01-07"
 end_date = "2024-12-20"
 data_dir = "Tickers_file"
 output_file = "TEST/main_data_real.csv"

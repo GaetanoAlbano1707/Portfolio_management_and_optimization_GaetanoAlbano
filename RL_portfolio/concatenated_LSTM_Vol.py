@@ -28,13 +28,14 @@ for file in files:
 
     # === Aggiungi colonna ticker
     df["tic"] = ticker
-    all_dfs.append(df[["Date", "LSTM_Vol", "tic"]])
+    df.rename(columns={'Date': 'date'}, inplace=True)
+    all_dfs.append(df[["date", "LSTM_Vol", "tic"]])
 
 # === Concatena tutti i DataFrame
 combined_df = pd.concat(all_dfs)
 
 # === Ordina e salva
-combined_df = combined_df.sort_values(["Date", "tic"])
+combined_df = combined_df.sort_values(["date", "tic"])
 combined_df.to_csv(output_path, index=False)
 
 print(f"✅ File combinato salvato in: {output_path}")

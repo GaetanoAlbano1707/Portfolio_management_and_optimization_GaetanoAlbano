@@ -6,9 +6,9 @@ from logger_weights import PortfolioLogger
 from validation_utils import validate_final_allocation
 
 # === Dati
-data_path = "./PPO/main_data_real.csv"
-mu_path = "./PPO/expected_returns_real.csv"
-sigma_path = "./PPO/forecasting_data_combined.csv"
+data_path = "./main_data_real.csv"
+mu_path = "./expected_returns_real.csv"
+sigma_path = "./forecasting_data_combined.csv"
 results_dir = "./PPO/results/grid_search/"
 os.makedirs(results_dir, exist_ok=True)
 

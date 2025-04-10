@@ -18,8 +18,5 @@ class PortfolioLogger:
         self.portfolio_values.append({'date': date, 'value': value})
 
     def save(self):
-        df_weights = pd.DataFrame(self.weights_log)
-        df_weights.to_csv(os.path.join(self.save_dir, "weights_log.csv"), index=False)
-
-        df_values = pd.DataFrame(self.portfolio_values)
-        df_values.to_csv(os.path.join(self.save_dir, "portfolio_values.csv"), index=False)
+        pd.DataFrame(self.weights_log).to_csv(os.path.join(self.save_dir, "weights_log.csv"), index=False)
+        pd.DataFrame(self.portfolio_values).to_csv(os.path.join(self.save_dir, "portfolio_values.csv"), index=False)
