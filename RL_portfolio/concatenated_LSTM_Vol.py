@@ -17,12 +17,12 @@ for file in files:
     # === Carica CSV
     df = pd.read_csv(file, parse_dates=["Date"])
 
-    # === Pulizia: sostituisci separatori numerici (es. 12.435.004 -> 12435.004)
+    # === Correzione formato numerico LSTM_Vol
     df["LSTM_Vol"] = (
         df["LSTM_Vol"]
         .astype(str)
-        .str.replace(".", "", regex=False)
-        .str.replace(",", ".", regex=False)
+        .str.replace(",", ".", regex=False)  # virgola → punto decimale
+        .str.replace(r"[^\d.]", "", regex=True)  # rimuove caratteri non numerici tranne il punto
         .astype(float)
     )
 
@@ -37,8 +37,7 @@ combined_df = pd.concat(all_dfs)
 # === Ordina e salva
 combined_df = combined_df.sort_values(["date", "tic"])
 combined_df.to_csv(output_path, index=False)
-
-print(f"✅ File combinato salvato in: {output_path}")
 combined_df.to_csv(output_path2, index=False)
 
+print(f"✅ File combinato salvato in: {output_path}")
 print(f"✅ File combinato salvato in: {output_path2}")

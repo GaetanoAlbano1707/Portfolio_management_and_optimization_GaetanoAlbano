@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-def run_equal_weights_strategy(df, tickers, rebalance_period=63):
+def run_equal_weights_strategy(df, tickers, rebalance_period=21):
     prices = df["adj_close"].unstack()
     returns = prices.pct_change().fillna(0)
     weights = np.ones(len(tickers)) / len(tickers)
@@ -24,7 +24,7 @@ def run_equal_weights_strategy(df, tickers, rebalance_period=63):
 
     return pd.Series(portfolio_values, index=dates)
 
-def run_minimum_variance_strategy(df, tickers, rebalance_period=63):
+def run_minimum_variance_strategy(df, tickers, rebalance_period=21):
     prices = df["adj_close"].unstack()
     returns = prices.pct_change().dropna()
     weights = np.ones(len(tickers)) / len(tickers)
@@ -58,7 +58,7 @@ def run_minimum_variance_strategy(df, tickers, rebalance_period=63):
 
     return pd.Series(portfolio_values, index=dates)
 
-def run_markowitz_strategy(df, tickers, rebalance_period=63):
+def run_markowitz_strategy(df, tickers, rebalance_period=21):
     prices = df["adj_close"].unstack()
     returns = prices.pct_change().dropna()
     weights = np.ones(len(tickers)) / len(tickers)
@@ -95,7 +95,7 @@ def run_markowitz_strategy(df, tickers, rebalance_period=63):
 
     return pd.Series(portfolio_values, index=dates)
 
-def run_random_strategy(df, tickers, rebalance_period=63):
+def run_random_strategy(df, tickers, rebalance_period=21):
     prices = df["adj_close"].unstack()
     returns = prices.pct_change().fillna(0)
 
@@ -133,7 +133,7 @@ def run_buy_and_hold_portfolio(df, tickers):
     cum_returns = (1 + weighted_returns).cumprod()
     return cum_returns
 
-def compare_strategies(df, tickers, rebalance_period=63, output_csv="model_comparison_returns.csv", output_plot="compare_models_test.png"):
+def compare_strategies(df, tickers, rebalance_period=21, output_csv="model_comparison_returns.csv", output_plot="compare_models_test.png"):
     strategies = {
         "Equal Weight": run_equal_weights_strategy(df, tickers, rebalance_period),
         "Minimum Variance": run_minimum_variance_strategy(df, tickers, rebalance_period),
