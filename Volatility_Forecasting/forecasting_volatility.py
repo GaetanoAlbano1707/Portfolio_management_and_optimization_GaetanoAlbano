@@ -42,7 +42,7 @@ class CheckNaNCallback(Callback):
 # Download dati
 ##############################################################################
 def load_data(tickers, start_date='01/01/2007', end_date='23/12/2024',
-              save_dir='./Volatility_Forecasting/Risultati_Forecasting'):
+              save_dir='/content/drive/MyDrive/Prova_Garch_TUTTI_I_TICKERS'):
     print("Inizio il download dei dati...")
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -71,7 +71,7 @@ def load_data(tickers, start_date='01/01/2007', end_date='23/12/2024',
     return data_frames
 
 def add_vix_brent_gold_features(tickers_gold_vix_brent, start_date='01/01/2007', end_date='23/12/2024',
-                                save_dir='./Volatility_Forecasting/Risultati_Forecasting'):
+                                save_dir='/content/drive/MyDrive/Prova_Garch_TUTTI_I_TICKERS'):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     start_date_dt = pd.to_datetime(start_date, format='%d/%m/%Y')
@@ -369,7 +369,7 @@ if __name__ == "__main__":
     test_start_date = pd.to_datetime('2019-12-20')
     test_end_date   = pd.to_datetime('2024-12-20')
     window_size = 10
-    save_dir = "./Volatility_Forecasting/Risultati_Forecasting"
+    save_dir = "/content/drive/MyDrive/Prova_Garch_TUTTI_I_TICKERS"
     features_list = ['return', 'log_return', 'garch_vol_forecast',
                  'gk_vol', 'lag_log_return', 'open_to_close',
                  'hv_20', 'log_hv20', 'RSI', 'SMA_14', 'BB_mid', 'BB_up', 'BB_down',
