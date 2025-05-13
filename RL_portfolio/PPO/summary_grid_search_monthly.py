@@ -6,7 +6,7 @@ import shutil
 BASE_DIR = "models/monthly"
 BEST_CONFIGS_DIR = "models/monthly_best_configs"
 OUTPUT_CSV = "grid_search_summary_monthly.csv"
-TOP_CONFIGS_JSON = "top_configs_by_lambda.json"
+TOP_CONFIGS_JSON = "top_configs_by_lambda_monthly.json"
 
 lambda_values = [0.0, 0.05, 0.1, 0.2]
 summary = []

@@ -35,16 +35,16 @@ from index_comparison import run_index_comparison
 # === CONFIG ===
 CSV_PATH = "merged_data_total_cleaned_wide_multifeatures.csv"
 WINDOW_SIZE = 5
-BASE_RESULTS_DIR = "results_ppo_risk_sweep_refined"
-MODEL_BASE_PATH = "models/monthly_best_configs"
-TOP_CONFIGS_JSON = "top_configs_by_lambda.json"
+BASE_RESULTS_DIR = "results_ppo_risk_sweep_refined_monthly"
+MODEL_BASE_PATH = "models/monthly_best_configs_retrain"
+TOP_CONFIGS_JSON = "top_configs_by_lambda_monthly.json"
 os.makedirs(BASE_RESULTS_DIR, exist_ok=True)
 
 # === LOAD DATA ===
 df, tickers = load_financial_data(CSV_PATH)
 _, df_test = train_test_split_df(df, train_ratio=0.8)
 
-with open("cov_matrices.pkl", "rb") as f:
+with open("cov_matrices_monthly.pkl", "rb") as f:
     cov_matrices = pickle.load(f)
 
 # === LOAD TOP CONFIGURATIONS ===
@@ -59,7 +59,7 @@ for lambda_risk_str, config_list in best_hyperparameters.items():
         result_dir = os.path.join(MODEL_BASE_PATH, f"lambda_{lambda_risk}", config_name, "results")
         os.makedirs(result_dir, exist_ok=True)
 
-        env = PortfolioEnv(df_test, tickers, window_size=WINDOW_SIZE, cov_matrices=cov_matrices, lambda_risk=lambda_risk)
+        env = PortfolioEnv(df_test, tickers, window_size=WINDOW_SIZE, cov_matrices=cov_matrices,rebalance_period=21, lambda_risk=lambda_risk)
         input_dim = np.prod(env.observation_space.shape)
 
         agent = PPOAgent(input_dim=input_dim, num_assets=len(tickers))

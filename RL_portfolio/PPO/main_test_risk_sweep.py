@@ -29,12 +29,14 @@ from compare_strategies import (
 )
 from evaluate_strategy_metrics import evaluate_strategies
 from risk_performance_comparison import summarize_cumulative_returns
+from index_comparison import run_index_comparison
+
 
 # === CONFIG ===
 CSV_PATH = "merged_data_total_cleaned_wide_multifeatures.csv"
 WINDOW_SIZE = 5
 BASE_RESULTS_DIR = "results_ppo_risk_sweep_refined"
-MODEL_BASE_PATH = "models/quarterly_best_configs"
+MODEL_BASE_PATH = "models/quarterly_best_configs_retrain"
 TOP_CONFIGS_JSON = "top_configs_by_lambda.json"
 os.makedirs(BASE_RESULTS_DIR, exist_ok=True)
 
@@ -149,6 +151,13 @@ for lambda_risk_str, config_list in best_hyperparameters.items():
         comparison_df = pd.DataFrame(strategies)
         comparison_df.to_csv(f"{result_dir}/model_comparison_returns.csv", index=True)
         evaluate_strategies(comparison_df, output_path=f"{result_dir}/strategy_risk_metrics.csv")
+
+        run_index_comparison(
+            result_dir=result_dir,
+            test_performance_path=os.path.join(result_dir, "test_performance.csv"),
+            start_date="2024-01-01",
+            end_date="2024-12-20"
+        )
 
         plt.figure(figsize=(12, 6))
         for name, series in strategies.items():

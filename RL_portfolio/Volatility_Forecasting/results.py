@@ -1,46 +1,64 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# === 1. Carica il CSV ===
+# === 1. Carica e pulisci i dati ===
 df = pd.read_csv("./Risultati_Forecasting/lstm_forecasting_metrics_leaveoneout.csv")
-
-# === 2. Elimina le colonne non richieste ===
 df = df.drop(columns=["Spearman_lstm", "Spearman_only_garch"], errors='ignore')
 
-# === 3. Calcola la riga media ===
-average_row = df.iloc[:, 1:].mean()
-average_row['ticker'] = 'Average'
+# Aggiungi riga Average
+avg = df.iloc[:, 1:].mean()
+avg['ticker'] = 'Average'
+df = pd.concat([df, pd.DataFrame([avg])], ignore_index=True)
 
-# === 4. Aggiungi la riga 'Average' ===
-df_with_average = pd.concat([df, pd.DataFrame([average_row])], ignore_index=True)
-
-# === 5. Arrotonda a 3 cifre significative ===
-for col in df_with_average.columns:
+# === 2. Formatta con 3 decimali fissi ===
+for col in df.columns:
     if col != 'ticker':
-        df_with_average[col] = pd.to_numeric(df_with_average[col], errors='coerce').apply(
-            lambda x: f"{x:.3g}" if pd.notnull(x) else '')
+        df[col] = pd.to_numeric(df[col], errors='coerce')\
+                    .apply(lambda x: f"{x:.3f}" if pd.notnull(x) else '')
 
-# === 6. Salva il nuovo CSV ===
-df_with_average.to_csv("lstm_forecasting_metrics_with_average.csv", index=False)
-
-# === 7. Crea tabella PNG ===
-fig, ax = plt.subplots(figsize=(12, 0.6 * len(df_with_average)))
+# === 3. Crea figura e tabella ===
+fig, ax = plt.subplots(figsize=(12, 0.5 * len(df)))
 ax.axis('off')
-
-table = ax.table(
-    cellText=df_with_average.values,
-    colLabels=df_with_average.columns,
+tbl = ax.table(
+    cellText=df.values,
+    colLabels=df.columns,
     cellLoc='center',
     loc='center'
 )
+tbl.auto_set_font_size(False)
+tbl.set_fontsize(10)
+tbl.scale(1, 1.5)
 
-table.auto_set_font_size(False)
-table.set_fontsize(10)
-table.scale(1, 1.5)
+# === 4. Forza il rendering per misurare la tabella ===
+fig.canvas.draw()
 
-# === 8. Aggiungi descrizione sotto ===
-plt.figtext(0.5, 0.02, "Tabella 2: Risultati MAE e MSE per i vari tickers", ha='center', fontsize=12)
+# === 5. Calcola il bordo inferiore della tabella ===
+renderer = fig.canvas.get_renderer()
+bb = tbl.get_window_extent(renderer)
+bb_ax = bb.transformed(ax.transAxes.inverted())
+y_bottom = bb_ax.y0
 
-# === 9. Salva immagine PNG ===
-plt.savefig("lstm_forecasting_metrics_with_average.png", bbox_inches='tight', dpi=300)
+# === 6. Aggiungi la caption subito sotto ===
+caption = "Tabella 2: Risultati MAE e MSE per i vari tickers"
+ax.text(
+    0.5,
+    y_bottom - 0.01,
+    caption,
+    ha='center',
+    va='top',
+    fontsize=12,
+    transform=ax.transAxes,
+    clip_on=False
+)
+
+# === 7. Salva l’immagine ===
+plt.savefig(
+    "lstm_forecasting_metrics_with_average.png",
+    dpi=300,
+    bbox_inches="tight",
+    pad_inches=0.02
+)
 plt.close()
+
+# === 8. Salva il CSV con i 3 decimali ===
+df.to_csv("lstm_forecasting_metrics_with_average.csv", index=False)

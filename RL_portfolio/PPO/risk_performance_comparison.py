@@ -54,7 +54,7 @@ def summarize_cumulative_returns(base_dir, top_configs_file="top_configs_by_lamb
 
 
 
-def summarize_cumulative_returns_monthly(base_dir, top_configs_file="top_configs_by_lambda.json", model_type="monthly"):
+def summarize_cumulative_returns_monthly(base_dir, top_configs_file="top_configs_by_lambda_monthly.json", model_type="monthly"):
     if not os.path.exists(top_configs_file):
         print(f"❌ File non trovato: {top_configs_file}")
         return
